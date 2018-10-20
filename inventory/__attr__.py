@@ -1,0 +1,7 @@
+__name__ = "inventory-frappe"
+__version__ = "0.9"
+__url__ = "https://github.com/gavindsouza/inventory-frappe"
+__author__ = r"Gavin D'souza"
+__email__ = "gavin18d@gmail.com"
+__description__ = "Basic Inventory Management System powered by Flask"
+__license__ = "MIT"
