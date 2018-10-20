@@ -15,13 +15,16 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mr-auto">{{ title }}</ul>
                 <div class="col-auto">
-                  <button type="button" name="myBtn" id="myBtn" class="btn btn-primary" onclick="location.reload();location.href='location.html'">Location</button>
+                  <button type="button" class="btn btn-primary" onclick="location.reload();location.href='{{ link.index }}'">Summary</button>
                 </div>
                 <div class="col-auto">
-                  <button type="button" name="myBtn" id="myBtn" class="btn btn-primary" onclick="location.reload();location.href='product.html'">Products</button>
+                  <button type="button" class="btn btn-primary" onclick="location.reload();location.href='{{ link.location }}'">Location</button>
                 </div>
                 <div class="col-auto">
-                  <button type="button" name="myBtn" id="myBtn" class="btn btn-primary" onclick="location.reload();location.href='movement.html'">Logistics</button>
+                  <button type="button" class="btn btn-primary" onclick="location.reload();location.href='{{ link.product }}'">Products</button>
+                </div>
+                <div class="col-auto">
+                  <button type="button" class="btn btn-primary" onclick="location.reload();location.href='{{ link.movement }}'">Logistics</button>
                 </div>
             </div>
 	    </nav>

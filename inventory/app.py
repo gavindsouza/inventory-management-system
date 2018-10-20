@@ -13,6 +13,7 @@ app.config.from_mapping(
     )
 app.config.from_pyfile('config.py', silent=True)
 
+link = {x: x for x in ["index", "location", "product", "movement"]}
 
 warehouse = [
     {
@@ -28,6 +29,7 @@ warehouse = [
         "address": "Bhandardara"
     }
 ]
+
 products = [
     {
         "name": "product_001",
@@ -47,22 +49,22 @@ products = [
 @app.route('/')
 @app.route('/index')
 def summary():
-    return render('index.html', warehouses=warehouse, products=products, title="Summary")
+    return render('index.html', link=link, warehouses=warehouse, products=products, title="Summary")
 
 
 @app.route('/product')
 def product():
-    return render('product.html', products=products, title="Products Log")
+    return render('product.html', link=link, products=products, title="Products Log")
 
 
 @app.route('/location')
 def location():
-    return render('location.html')
+    return render('location.html', link=link, title="Warehouse Locations")
 
 
 @app.route('/movement')
 def movement():
-    return render('movement.html')
+    return render('movement.html', link=link, title="ProductMovement")
 
 
 if __name__ == '__main__':
