@@ -7,8 +7,8 @@ import sqlite3
 from flask import Flask, url_for, request
 from flask import render_template as render
 
+# global constants
 DATABASE_NAME = 'inventory.db'
-
 
 # setting up Flask instance
 app = Flask(__name__)
@@ -27,8 +27,11 @@ link["index"] = '/'
 def summary():
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
-    cursor.execute("True")  # <---------------------------------FIX THIS
-    return render('index.html', link=link, warehouses=warehouse, products=products, title="Summary")
+    cursor.execute("SELECT * FROM location")   # <---------------------------------FIX THIS
+    warehouse = cursor.fetchall()
+    cursor.execute("SELECT * FROM products")
+    products = cursor.fetchall()
+    return render('index.html', link=link, title="Summary", warehouses=warehouse, products=products)
 
 
 @app.route('/product', methods=['POST', 'GET'])
@@ -37,19 +40,22 @@ def product():
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT, \
-                                 prod_name TEXT UNIQUE NOT NULL)")
-
+                    prod_name TEXT UNIQUE NOT NULL, \
+                    quantity INTEGER NOT NULL )")
+    cursor.execute("SELECT * FROM products")
+    products = cursor.fetchall()
     if request.method == 'POST':
         prod_name = request.form['prod_name']
 
         try:
-            cursor.execute(f"INSERT INTO products (prod_name) VALUES ({prod_name})")
+            cursor.execute("INSERT INTO products (prod_name) VALUES (?)", prod_name)
             db.commit()
         except sqlite3.Error as e:
             msg =  f"An error occurred: {e.args[0]}"
         else:
             msg = f"{prod_name} added successfully"
-    print(msg)
+    if msg:
+        print(msg)
 
     return render('product.html', link=link, products=products, title="Products Log")
 
@@ -66,13 +72,15 @@ def location():
         warehouse_name = request.form['warehouse_name']
 
         try:
-            cursor.execute(f"INSERT INTO products (prod_name) VALUES ({warehouse_name})")
+            cursor.execute("INSERT INTO location (loc_name) VALUES (?)", warehouse_name)
             db.commit()
         except sqlite3.Error as e:
             msg = f"An error occurred: {e.args[0]}"
         else:
             msg = f"{warehouse_name} added successfully"
-    print(msg)
+    if msg:
+        print(msg)
+
     return render('location.html', link=link, warehouses=warehouse_data, title="Warehouse Locations")
 
 
@@ -99,17 +107,20 @@ def movement():
         to_loc = request.form['to_loc']
         quantity = request.form['quantity']
         curr_time = str(datetime.datetime.now())
-
+        #
+        #   BAD QUERY !!!
+        #
         try:
-            cursor.execute(f"INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, quantity, trans_time )"
-                           f" VALUES ({prod_name}, {from_loc}, {to_loc}, {quantity}, {curr_time})")
+            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, quantity, trans_time ) "
+                           "VALUES (?, ?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity, curr_time))
             db.commit()
         except sqlite3.Error as e:
             msg = f"An error occurred: {e.args[0]}"
         else:
             msg = f"Transaction added successfully"
+    if msg:
+        print(msg)
 
-    print(msg)
     return render('movement.html', link=link, trans_message=msg, logs=logistics_data, title="ProductMovement")
 
 
