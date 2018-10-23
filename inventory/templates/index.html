@@ -5,7 +5,7 @@
         <div style="height: 50%;width: 100%;">
             {% if warehouses == None %}
             <div style="float: left;width:50%;">
-                <h1>No Warehouse Data Available Yet</h1>
+                <h3 align="center" class="font-weight-light">No Warehouse Data Available Yet</h3>
             </div>
             {% else %}
             <!-- Div to list all warehouses -->
@@ -30,7 +30,7 @@
         {% endif %}
         {% if products == None %}
             <div style="float: left;width: 50%;">
-                <h1>No Warehouse Data Available Yet</h1>
+                <h3 align="center" class="font-weight-light">No Product Data Available Yet</h3>
             </div>
         {% else %}
             <!-- Div to list all products -->
@@ -81,7 +81,7 @@
                 </table>
             </div>
         {% else %}
-            <h1>Summary not available yet</h1>
+            <h3 align="center" class="font-weight-light">Summary not available yet</h3>
         {% endif %}
         </div>
     </div>

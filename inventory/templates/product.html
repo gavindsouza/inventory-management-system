@@ -1,7 +1,6 @@
 {% extends 'base-template.html' %}
 {% block content %}
     <div class="container">
-        <form action = "{{ url_for('product') }}" method = "POST">
         <table class="table">
             <thead>
                 <th scope="col">Product ID</th>
@@ -20,26 +19,43 @@
                             </a>
                         </td>
                         <td>
-                            <a href="{{ url_for('edit', prod_id=product[0], type='product') }}">
-                                <button name="button" type="button" class="btn btn-success" value= "edit" data-toggle="modal" data-target="#edit" >edit</button><br>
-                            </a>
+                            <button name="button" type="button" class="btn btn-success" value= "edit" data-toggle="modal" data-target="#edit_{{ product[0] }}" >edit</button><br>
+                            <div id="edit_{{ product[0] }}" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="trans_message" aria-hidden="true">
+                                <form action="{{ url_for('edit', type='product') }}" method="post">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-body"><input name="prod_name" placeholder="{{ product[1] }}"></div>
+                                        <div class="modal-body"><input name="prod_quantity" placeholder="{{ product[2] }}"></div>
+                                        <div class="modal-footer">
+                                            <input name="prod_id" value="{{ product[0] }}" hidden aria-hidden="true">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                            <!--a href="{{ url_for('edit', prod_id=product[0], type='product') }}"-->
+                                                <button type="submit" class="btn btn-primary">Save changes</button>
+                                            <!--/a-->
+                                        </div>
+                                    </div>
+                                </div>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}
                 <!-- Inserting data -->
                 <tr>
-                    <td>
-                        <input name = "prod_name" placeholder="Product Name" required>
-                    </td>
-                    <td>
-                        <input name = "prod_quantity" placeholder="Quantity" required>
-                    </td>
-                    <td>
-                        <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
-                    </td>
+                    <form action = "{{ url_for('product') }}" method = "POST">
+                        <td></td>
+                        <td>
+                            <input name = "prod_name" placeholder="Product Name" required>
+                        </td>
+                        <td>
+                            <input name = "prod_quantity" placeholder="Quantity" required>
+                        </td>
+                        <td>
+                            <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
+                        </td>
+                    </form>
                 </tr>
             </tbody>
         </table>
-        </form>
     </div>
 {% endblock %}
