@@ -1,62 +1,88 @@
 {% extends 'base-template.html' %}
 {% block content %}
-    <!-- Div to list all warehouses -->
-    <div style="float:left;width:50%">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for warehouse in warehouses %}
-                    <tr>
-                        <td>{{ warehouse.name }}</td>
-                        <td>{{ warehouse.address }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <!-- Div to list all products -->
-    <div style="float:left;width:50%;">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                    <tr>
-                        <td>{{ product.name }}</td>
-                        <td>{{ product.count }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <!-- Summary needed -->
-    <div>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th scope="col">Product</th>
-                    <th scope="col">Warehouse</th>
-                    <th scope="col">Quantity</th>
-                </tr>
-            </thead>
-            <thead>
-                {% for data in database %}
-                    <tr>
-                        <td>{{ data.product }}</td>
-                        <td>{{ data.location }}</td>
-                        <td>{{ data.count }}</td>
-                    </tr>
-                {% endfor %}
-            </thead>
-        </table>
+    <div class="container">
+    <h3 align="center">Description</h3>
+        <div style="height: 50%;width: 100%;">
+            {% if warehouses == None %}
+            <div style="float: left;width:50%;">
+                <h1>No Warehouse Data Available Yet</h1>
+            </div>
+            {% else %}
+            <!-- Div to list all warehouses -->
+            <div style="float:left;width:50%">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">loc_id</th>
+                            <th scope="col">Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for warehouse in warehouses %}
+                            <tr>
+                                <td>{{ warehouse[0] }}</td>
+                                <td>{{ warehouse[1] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        {% if products == None %}
+            <div style="float: left;width: 50%;">
+                <h1>No Warehouse Data Available Yet</h1>
+            </div>
+        {% else %}
+            <!-- Div to list all products -->
+            <div style="float:left;width:50%;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">prod_id</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                            <tr>
+                                <td>{{ product[0] }}</td>
+                                <td>{{ product[1] }}</td>
+                                <td>{{ product[2] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        </div>
+    <h3 align="center">Summary</h3>
+        <div class="form-horizontal" title="Summary">
+        {% if database != None %}
+            <!-- Summary needed -->
+            <div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Product</th>
+                            <th scope="col">Warehouse</th>
+                            <th scope="col">Quantity</th>
+                        </tr>
+                    </thead>
+                    <thead>
+                        {% for data in database %}
+                            <tr>
+                                <td>{{ data[0] }}</td>
+                                <td>{{ data[1] }}</td>
+                                <td>{{ data[2] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </thead>
+                </table>
+            </div>
+        {% else %}
+            <h1>Summary not available yet</h1>
+        {% endif %}
+        </div>
     </div>
 {% endblock %}
