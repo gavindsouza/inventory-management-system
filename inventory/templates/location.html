@@ -1,28 +1,43 @@
 {% extends 'base-template.html' %}
 {% block content %}
-    <form action = "{{ url_for('location') }}" method = "POST">
-    <table class="table">
-        <thead>
-            <th scope="col">Location ID</th>
-            <th scope="col">Location Name</th>
-        </thead>
-        <tbody>
-            {% for location in warehouses %}
+    <div class="container">
+        <form action = "{{ url_for('location') }}" method = "POST">
+        <table class="table">
+            <thead>
+                <th scope="col">Location ID</th>
+                <th scope="col">Location Name</th>
+                <th></th>
+            </thead>
+            <tbody>
+                {% for location in warehouses %}
+                    <tr>
+                        <td>{{ location[0] }}</td>
+                        <td>{{ location[1] }}</td>
+                        <td>
+                            <a href="{{ url_for('delete', loc_id=location[0], type='location') }}">
+                                <button name="button" type="button" class="btn btn-danger" value= "delete" >delete</button><br>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('edit', loc_id=location[0], type='location') }}">
+                                <button name="button" type="button" class="btn btn-success" value= "edit" >edit</button><br>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                <!-- Inserting data -->
                 <tr>
-                    <td>{{ location.name }}</td>
-                    <td>{{ location.address }}</td>
+                    <td></td>
+                    <td>
+                        <input name= "warehouse_name" placeholder="Warehouse Name" required>
+                    </td>
+                    <td>
+                        <input type= "submit" class="btn btn-info btn-group-toggle" data-toggle="modal" data-target="#trans_message" value= "submit" /><br>
+                    </td>
                 </tr>
-            {% endfor %}
-            <!-- Inserting data -->
-            <tr>
-                <td>
-                    <input name= "warehouse_name" placeholder="Warehouse Name" required>
-                </td>
-                <td>
-                    <input type= "submit" value= "submit" /><br>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    </form>
+            </tbody>
+        </table>
+        </form>
+    </div>
+    {% include 'modal.html' %}
 {% endblock %}

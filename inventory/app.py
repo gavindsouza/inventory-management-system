@@ -4,7 +4,7 @@ import datetime
 import sqlite3
 
 # imports - third party imports
-from flask import Flask, url_for, request
+from flask import Flask, url_for, request, redirect
 from flask import render_template as render
 
 # global constants
@@ -13,9 +13,9 @@ DATABASE_NAME = 'inventory.db'
 # setting up Flask instance
 app = Flask(__name__)
 app.config.from_mapping(
-        SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'inventory.db'),
-    )
+    SECRET_KEY='dev',
+    DATABASE=os.path.join(app.instance_path, 'inventory.db'),
+)
 app.config.from_pyfile('config.py', silent=True)
 
 # listing views
@@ -25,13 +25,24 @@ link["index"] = '/'
 
 @app.route('/')
 def summary():
+    msg = None
+    q_data, warehouse, products = None, None, None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM location")   # <---------------------------------FIX THIS
-    warehouse = cursor.fetchall()
-    cursor.execute("SELECT * FROM products")
-    products = cursor.fetchall()
-    return render('index.html', link=link, title="Summary", warehouses=warehouse, products=products)
+    try:
+        cursor.execute("SELECT * FROM location")  # <---------------------------------FIX THIS
+        warehouse = cursor.fetchall()
+        cursor.execute("SELECT * FROM products")
+        products = cursor.fetchall()
+        cursor.execute("SELECT prod.prod_name, logs.quantity, loc.loc_name FROM products prod, logistics logs, location loc \
+        WHERE prod.prod_id == logs.prod_id AND logs.to_loc_id == loc.loc_id GROUP BY logs.to_loc_id")
+        q_data = cursor.fetchall()
+    except sqlite3.Error as e:
+        msg = f"An error occurred: {e.args[0]}"
+    if msg:
+        print(msg)
+
+    return render('index.html', link=link, title="Summary", warehouses=warehouse, products=products, database=q_data)
 
 
 @app.route('/product', methods=['POST', 'GET'])
@@ -44,20 +55,25 @@ def product():
                     quantity INTEGER NOT NULL )")
     cursor.execute("SELECT * FROM products")
     products = cursor.fetchall()
+
     if request.method == 'POST':
         prod_name = request.form['prod_name']
-
+        quantity = request.form['prod_quantity']
         try:
-            cursor.execute("INSERT INTO products (prod_name) VALUES (?)", prod_name)
+            cursor.execute("INSERT INTO products (prod_name, quantity) VALUES (?, ?)", (prod_name, quantity))
             db.commit()
         except sqlite3.Error as e:
-            msg =  f"An error occurred: {e.args[0]}"
+            msg = f"An error occurred: {e.args[0]}"
         else:
             msg = f"{prod_name} added successfully"
+
+        return redirect(url_for('product'))
     if msg:
         print(msg)
 
-    return render('product.html', link=link, products=products, title="Products Log")
+    return render('product.html',
+                  link=link, products=products, transaction_message=msg,
+                  title="Products Log")
 
 
 @app.route('/location', methods=['POST', 'GET'])
@@ -67,10 +83,11 @@ def location():
     cursor = db.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT, \
                                  loc_name TEXT UNIQUE NOT NULL)")
+    cursor.execute("SELECT * FROM location")
     warehouse_data = cursor.fetchall()
+
     if request.method == 'POST':
         warehouse_name = request.form['warehouse_name']
-
         try:
             cursor.execute("INSERT INTO location (loc_name) VALUES (?)", warehouse_name)
             db.commit()
@@ -78,10 +95,12 @@ def location():
             msg = f"An error occurred: {e.args[0]}"
         else:
             msg = f"{warehouse_name} added successfully"
-    if msg:
-        print(msg)
 
-    return render('location.html', link=link, warehouses=warehouse_data, title="Warehouse Locations")
+        return redirect(url_for('location'))
+
+    return render('location.html',
+                  link=link, warehouses=warehouse_data, transaction_message=msg,
+                  title="Warehouse Locations")
 
 
 @app.route('/movement', methods=['POST', 'GET'])
@@ -122,6 +141,31 @@ def movement():
         print(msg)
 
     return render('movement.html', link=link, trans_message=msg, logs=logistics_data, title="ProductMovement")
+
+
+@app.route('/delete')   # , methods=['POST', 'GET'])
+def delete():
+    type_ = request.args.get('type')
+    db = sqlite3.connect(DATABASE_NAME)
+    cursor = db.cursor()
+
+    if type_ == 'location':
+        id_ = request.args.get('loc_id')
+        cursor.execute("DELETE FROM location WHERE loc_id == ?", str(id_))
+        db.commit()
+        return redirect(url_for('location'))
+
+    elif type_ == 'product':
+        id_ = request.args.get('prod_id')
+        cursor.execute("DELETE FROM products WHERE prod_id == ?", str(id_))
+        db.commit()
+        return redirect(url_for('product'))
+
+
+@app.route('/edit', methods=['POST', 'GET'])
+def edit():
+    if request.method == 'POST':
+        pass
 
 
 if __name__ == '__main__':
