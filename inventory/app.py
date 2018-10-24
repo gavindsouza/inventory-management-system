@@ -52,7 +52,16 @@ def product():
     cursor = db.cursor()
     cursor.execute("CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT, \
                     prod_name TEXT UNIQUE NOT NULL, \
-                    prod_quantity INTEGER NOT NULL )")
+                    prod_quantity INTEGER NOT NULL, \
+                    unallocated_quantity INTEGER)")
+    cursor.execute("CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty \
+                    AFTER INSERT ON products \
+                    FOR EACH ROW \
+                    WHEN NEW.unallocated_quantity IS NULL \
+                    BEGIN \
+                        UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid; \
+                    END;")
+    db.commit()
     cursor.execute("SELECT * FROM products")
     products = cursor.fetchall()
 
@@ -74,9 +83,10 @@ def product():
             else:
                 msg = f"{prod_name} added successfully"
 
+            if msg:
+                print(msg)
+
             return redirect(url_for('product'))
-    if msg:
-        print(msg)
 
     return render('product.html',
                   link=link, products=products, transaction_message=msg,
@@ -109,7 +119,10 @@ def location():
                 msg = f"An error occurred: {e.args[0]}"
             else:
                 msg = f"{warehouse_name} added successfully"
-            print(msg)
+
+            if msg:
+                print(msg)
+
             return redirect(url_for('location'))
 
     return render('location.html',
@@ -132,6 +145,8 @@ def movement():
                                 FOREIGN KEY(prod_id) REFERENCES products(prod_id), \
                                 FOREIGN KEY(from_loc_id) REFERENCES location(loc_id), \
                                 FOREIGN KEY(to_loc_id) REFERENCES location(loc_id))")
+    db.commit()
+
     cursor.execute("SELECT * FROM logistics")
     logistics_data = cursor.fetchall()
 
