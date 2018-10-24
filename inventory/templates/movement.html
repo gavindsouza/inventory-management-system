@@ -2,57 +2,58 @@
 {% block content %}
     <div class="container">
         <h3 align="center" class="font-weight-light">Summary</h3>
+        {% if database == None or database|length == 0 %}
+            <h3 align="center" class="font-weight-light">Summary not available yet</h3>
+        {% else %}
             <table class="table">
-            <thead>
-                <th scope="col">Product</th>
-                <th scope="col">Warehouse</th>
-                <th scope="col">Quantity</th>
-            </thead>
-            <tbody>
+                <thead>
+                    <th scope="col">Product</th>
+                    <th scope="col">Warehouse</th>
+                    <th scope="col">Quantity</th>
+                </thead>
+                <tbody>
                 <!-- Showing current state (just as index.html -->
-                {% for data in database %}
-                    <tr>
-                        <td>{{ data[0] }}</td>
-                        <td>{{ data[1] }}</td>
-                        <td>{{ data[2] }}</td>
-                    </tr>
-                {% endfor %}
-                <!-- Inserting data -->
-                <tr>
-                    <form action = "{{ url_for('movement') }}" method = "POST">
-                        <td>
-                            <input name= "prod_name" list="products" placeholder="Product Name" required>
-                            <datalist id="products">
-                                {% for product in products %}
-                                    <option value={{ product }}>
-                                {% endfor %}
-                            </datalist>
-                        </td>
-                        <td>
-                            <input name= "from_loc" list="from_loc" placeholder="From Warehouse" required>
-                            <datalist id="from_loc">
-                                {% for location in locations %}
-                                    <option value={{ location }}>
-                                {% endfor %}
-                            </datalist>
-                        </td>
-                        <td>
-                            <input name= "to_loc" list="to_loc" placeholder="To Warehouse" required>
-                            <datalist id="to_loc">
-                                {% for location in locations %}
-                                    <option value={{ location }}>
-                                {% endfor %}
-                            </datalist>
-                        </td>
-                        <td>
-                            <input name= "quantity" placeholder="Quantity" required>
-                        </td>
-                        <td>
-                            <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
-                        </td>
-                    </form>
-                </tr>
-            </tbody>
-        </table>
+                    {% for data in database %}
+                        <tr>
+                            <td>{{ data[0] }}</td>
+                            <td>{{ data[1] }}</td>
+                            <td>{{ data[2] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <br><hr><br>
+        <!-- Inserting data -->
+        <h3 align="center" class="font-weight-light">Make Product Movements</h3>
+        <form action = "{{ url_for('movement') }}" method = "POST">
+            <div class="form-row" title="Add logs">
+                <div class="col">
+                    <input name= "prod_name" list="products" placeholder="Product Name" class="form-control" autocomplete="off" required>
+                    <datalist id="products">
+                        {% for product in products %}
+                            <option value={{ product }}>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="col">
+                    <input name= "from_loc" list="locations_to_from" placeholder="From Warehouse" class="form-control" autocomplete="off">
+                    <datalist id="locations_to_from">
+                        {% for location in locations %}
+                            <option value={{ location }}>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="col">
+                    <input name= "to_loc" list="locations_to_from" placeholder="To Warehouse" class="form-control" autocomplete="off">
+                </div>
+                <div class="col">
+                    <input name= "quantity" placeholder="Quantity" class="form-control" autocomplete="off" required>
+                </div>
+                <div class="col">
+                    <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
+                </div>
+            </div>
+        </form>
     </div>
 {% endblock %}
