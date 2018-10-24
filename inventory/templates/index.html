@@ -2,7 +2,7 @@
 {% block content %}
     <div class="container">
     <h3 align="center">Description</h3>
-        <div style="height: 50%;width: 100%;">
+        <div style="height: 50%;width: 100%; float: left">
             {% if warehouses == None or warehouses|length == 0 %}
             <div style="float: left;width:50%;">
                 <h3 align="center" class="font-weight-light">No Warehouse Data Available Yet</h3>
@@ -29,12 +29,12 @@
             </div>
         {% endif %}
         {% if products == None or products|length == 0 %}
-            <div style="float: left;width: 50%;">
+            <div style="float: right;width: 50%;">
                 <h3 align="center" class="font-weight-light">No Product Data Available Yet</h3>
             </div>
         {% else %}
             <!-- Div to list all products -->
-            <div style="float:left;width:50%;">
+            <div style="float:right;width:50%;">
                 <table class="table">
                     <thead>
                         <tr>
@@ -56,6 +56,9 @@
             </div>
         {% endif %}
         </div>
+    </div>
+
+    <div class="container" style="float: contour;" align="center">
     <h3 align="center">Summary</h3>
         <div class="form-horizontal" title="Summary">
         {% if database == None or database|length == 0 %}

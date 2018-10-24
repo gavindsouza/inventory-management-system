@@ -1,5 +1,5 @@
 __name__ = "inventory-frappe"
-__version__ = "0.1"
+__version__ = "0.5"
 __url__ = "https://github.com/gavindsouza/inventory-frappe"
 __author__ = r"Gavin D'souza"
 __email__ = "gavin18d@gmail.com"

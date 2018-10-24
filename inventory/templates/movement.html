@@ -1,33 +1,43 @@
 {% extends 'base-template.html' %}
 {% block content %}
     <div class="container">
-        <form action = "{{ url_for('movement') }}" method = "POST">
-        <table class="table">
+        <h3 align="center" class="font-weight-light">Summary</h3>
+            <table class="table">
             <thead>
-                <th scope="col">Location ID</th>
-                <th scope="col">Location Name</th>
+                <th scope="col">Product</th>
+                <th scope="col">Warehouse</th>
+                <th scope="col">Quantity</th>
             </thead>
             <tbody>
+                <!-- Showing current state (just as index.html -->
+                {% for data in database %}
+                    <tr>
+                        <td>{{ data[0] }}</td>
+                        <td>{{ data[1] }}</td>
+                        <td>{{ data[2] }}</td>
+                    </tr>
+                {% endfor %}
                 <!-- Inserting data -->
                 <tr>
-                    <td>
-                        <input name= "prod_name" placeholder="Product Name" required>
-                    </td>
-                    <td>
-                        <input name= "from_loc" placeholder="From Warehouse" required>
-                    </td>
-                    <td>
-                        <input name= "to_loc" placeholder="To Warehouse" required>
-                    </td>
-                    <td>
-                        <input name= "quantity" placeholder="Quantity" required>
-                    </td>
-                    <td>
-                        <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
-                    </td>
+                    <form action = "{{ url_for('movement') }}" method = "POST">
+                        <td>
+                            <input name= "prod_name" placeholder="Product Name" required>
+                        </td>
+                        <td>
+                            <input name= "from_loc" placeholder="From Warehouse" required>
+                        </td>
+                        <td>
+                            <input name= "to_loc" placeholder="To Warehouse" required>
+                        </td>
+                        <td>
+                            <input name= "quantity" placeholder="Quantity" required>
+                        </td>
+                        <td>
+                            <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
+                        </td>
+                    </form>
                 </tr>
             </tbody>
         </table>
-        </form>
     </div>
 {% endblock %}

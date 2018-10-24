@@ -122,6 +122,7 @@ def movement():
     msg = None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
+
     cursor.execute("CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT, \
                                 prod_id INTEGER NOT NULL, \
                                 from_loc_id INTEGER NOT NULL, \
