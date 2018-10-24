@@ -3,7 +3,7 @@
     <div class="container">
     <h3 align="center">Description</h3>
         <div style="height: 50%;width: 100%;">
-            {% if warehouses == None %}
+            {% if warehouses == None or warehouses|length == 0 %}
             <div style="float: left;width:50%;">
                 <h3 align="center" class="font-weight-light">No Warehouse Data Available Yet</h3>
             </div>
@@ -28,7 +28,7 @@
                 </table>
             </div>
         {% endif %}
-        {% if products == None %}
+        {% if products == None or products|length == 0 %}
             <div style="float: left;width: 50%;">
                 <h3 align="center" class="font-weight-light">No Product Data Available Yet</h3>
             </div>
@@ -58,7 +58,9 @@
         </div>
     <h3 align="center">Summary</h3>
         <div class="form-horizontal" title="Summary">
-        {% if database != None %}
+        {% if database == None or database|length == 0 %}
+            <h3 align="center" class="font-weight-light">Summary not available yet</h3>
+        {% else %}
             <!-- Summary needed -->
             <div>
                 <table class="table">
@@ -80,8 +82,6 @@
                     </thead>
                 </table>
             </div>
-        {% else %}
-            <h3 align="center" class="font-weight-light">Summary not available yet</h3>
         {% endif %}
         </div>
     </div>

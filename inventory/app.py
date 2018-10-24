@@ -103,7 +103,7 @@ def location():
 
         if transaction_allowed:
             try:
-                cursor.execute("INSERT INTO location (loc_name) VALUES (?)", warehouse_name)
+                cursor.execute("INSERT INTO location (loc_name) VALUES (?)", (warehouse_name,))
                 db.commit()
             except sqlite3.Error as e:
                 msg = f"An error occurred: {e.args[0]}"
@@ -182,11 +182,13 @@ def edit():
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
 
-    if type_ == 'location':
-        id_ = request.args.get('loc_id')
-        name_ = request.args.get('loc_name')
+    if type_ == 'location' and request.method == 'POST':
+        loc_id = request.form['loc_id']
+        loc_name = request.form['loc_name']
 
-        # cursor.execute("DELETE FROM location WHERE loc_id == ?", str(id_))
+        if loc_name:
+            cursor.execute("UPDATE location SET loc_name = ? WHERE loc_id == ?", (loc_name, str(loc_id)))
+
         db.commit()
         return redirect(url_for('location'))
 
