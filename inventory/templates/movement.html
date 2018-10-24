@@ -21,13 +21,28 @@
                 <tr>
                     <form action = "{{ url_for('movement') }}" method = "POST">
                         <td>
-                            <input name= "prod_name" placeholder="Product Name" required>
+                            <input name= "prod_name" list="products" placeholder="Product Name" required>
+                            <datalist id="products">
+                                {% for product in products %}
+                                    <option value={{ product }}>
+                                {% endfor %}
+                            </datalist>
                         </td>
                         <td>
-                            <input name= "from_loc" placeholder="From Warehouse" required>
+                            <input name= "from_loc" list="from_loc" placeholder="From Warehouse" required>
+                            <datalist id="from_loc">
+                                {% for location in locations %}
+                                    <option value={{ location }}>
+                                {% endfor %}
+                            </datalist>
                         </td>
                         <td>
-                            <input name= "to_loc" placeholder="To Warehouse" required>
+                            <input name= "to_loc" list="to_loc" placeholder="To Warehouse" required>
+                            <datalist id="to_loc">
+                                {% for location in locations %}
+                                    <option value={{ location }}>
+                                {% endfor %}
+                            </datalist>
                         </td>
                         <td>
                             <input name= "quantity" placeholder="Quantity" required>

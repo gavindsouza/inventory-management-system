@@ -50,6 +50,8 @@ def product():
     msg = None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
+
+    # initialize page content
     cursor.execute("CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT, \
                     prod_name TEXT UNIQUE NOT NULL, \
                     prod_quantity INTEGER NOT NULL, \
@@ -62,6 +64,7 @@ def product():
                         UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid; \
                     END;")
     db.commit()
+
     cursor.execute("SELECT * FROM products")
     products = cursor.fetchall()
 
@@ -98,6 +101,8 @@ def location():
     msg = None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
+
+    # initialize page content
     cursor.execute("CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT, \
                                  loc_name TEXT UNIQUE NOT NULL)")
     db.commit()
@@ -136,6 +141,7 @@ def movement():
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
 
+    # initialize page content
     cursor.execute("CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT, \
                                 prod_id INTEGER NOT NULL, \
                                 from_loc_id INTEGER NOT NULL, \
@@ -149,6 +155,15 @@ def movement():
 
     cursor.execute("SELECT * FROM logistics")
     logistics_data = cursor.fetchall()
+
+    # add suggestive content for page
+    cursor.execute("SELECT prod_name FROM products")
+    products = [x[0] for x in cursor.fetchall()]
+    print(products)
+
+    cursor.execute("SELECT loc_name FROM location")
+    locations = [x[0] for x in cursor.fetchall()]
+    print(locations)
 
     if request.method == 'POST':
         prod_name = request.form['prod_name']
@@ -170,7 +185,9 @@ def movement():
     if msg:
         print(msg)
 
-    return render('movement.html', link=link, trans_message=msg, logs=logistics_data, title="ProductMovement")
+    return render('movement.html', title="ProductMovement",
+                  link=link, trans_message=msg,
+                  products=products, locations=locations, logs=logistics_data)
 
 
 @app.route('/delete')   # , methods=['POST', 'GET'])
