@@ -42,9 +42,24 @@
                 <div class="col">
                     <input name= "to_loc" list="locations_to_from" placeholder="To Warehouse" class="form-control" autocomplete="off">
                 </div>
-                <div class="col">
-                    <input type="range" max="" name="quantity" placeholder="Quantity" class="rangeslider rangeslider--horizontal" autocomplete="off" required>
+                <div class="col slide-container">
+                    <!--input name="quantity" placeholder="Quantity" class="form-control" autocomplete="off" required-->
                     <!-- ADD min / max values or something, from available/unallocated prods-->
+                    <input name="quantity" type="range" min="1" max="100" value="50" class="slider" id="slider_range">
+                    <p>Value: <span id="show_selected"></span></p>
+
+                    <script>
+                        let slider = document.getElementById("slider_range");
+                        let output = document.getElementById("show_selected");
+
+                        slider.setAttribute("max", "100");
+
+                        output.innerHTML = slider.value;
+                        slider.oninput = function() {
+                          output.innerHTML = this.value;
+                        }
+                    </script>
+
                 </div>
                 <div class="col">
                     <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>

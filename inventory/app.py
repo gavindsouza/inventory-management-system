@@ -161,12 +161,19 @@ def movement():
     # products = [x[0] for x in cursor.fetchall()]  <----- Used this to get only product names
     # (convert single element tuple to list)
     products = cursor.fetchall()
-    print(products)
 
     cursor.execute("SELECT loc_id, loc_name FROM location")
     # locations = [x[0] for x in cursor.fetchall()] <----- Used this to get only location names
     locations = cursor.fetchall()
-    print(locations)
+
+    #
+    #   BAD QUERY !!!
+    #
+    cursor.execute("SELECT products.prod_name, logistics.prod_quantity, location.loc_name FROM products, logistics, location \
+    WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
+    log_summary = cursor.fetchall()
+
+    print(log_summary)
 
     if request.method == 'POST':
         prod_name = request.form['prod_name']
@@ -174,11 +181,11 @@ def movement():
         to_loc = request.form['to_loc']
         quantity = request.form['quantity']
         curr_time = str(datetime.datetime.now())
-        #
-        #   BAD QUERY !!!
-        #
+
+        print(prod_name,from_loc,to_loc,quantity,curr_time, "from LINE 182")
+
         try:
-            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, quantity, trans_time ) \
+            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity, trans_time ) \
                             VALUES (?, ?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity, curr_time))
             db.commit()
         except sqlite3.Error as e:
@@ -190,7 +197,7 @@ def movement():
 
     return render('movement.html', title="ProductMovement",
                   link=link, trans_message=msg,
-                  products=products, locations=locations, logs=logistics_data)
+                  products=products, locations=locations, logs=logistics_data, database=log_summary)
 
 
 @app.route('/delete')   # , methods=['POST', 'GET'])
