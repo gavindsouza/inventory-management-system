@@ -7,6 +7,10 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
         <script src="{{ url_for('static', filename='jquery-3.3.1.slim.min.js') }}"></script>
         <script src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+        {% if title == 'ProductMovement' %}
+            <link rel="stylesheet" href="{{ url_for('static', filename='rangeslider.css') }}">
+            <script src="{{ url_for('static', filename='rangeslider.min.js') }}"></script>
+        {% endif %}
         <style>
             .container { padding-top: 70px; }
         </style>

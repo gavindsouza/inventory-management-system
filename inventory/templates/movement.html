@@ -32,27 +32,28 @@
                     <input name= "prod_name" list="products" placeholder="Product Name" class="form-control" autocomplete="off" required>
                     <datalist id="products">
                         {% for product in products %}
-                            <option value={{ product }}>
+                            <option value="{{ product[1] }}" id="prod_{{ product[0] }}">
                         {% endfor %}
                     </datalist>
                 </div>
                 <div class="col">
                     <input name= "from_loc" list="locations_to_from" placeholder="From Warehouse" class="form-control" autocomplete="off">
-                    <datalist id="locations_to_from">
-                        {% for location in locations %}
-                            <option value={{ location }}>
-                        {% endfor %}
-                    </datalist>
                 </div>
                 <div class="col">
                     <input name= "to_loc" list="locations_to_from" placeholder="To Warehouse" class="form-control" autocomplete="off">
                 </div>
                 <div class="col">
-                    <input name= "quantity" placeholder="Quantity" class="form-control" autocomplete="off" required>
+                    <input type="range" max="" name="quantity" placeholder="Quantity" class="rangeslider rangeslider--horizontal" autocomplete="off" required>
+                    <!-- ADD min / max values or something, from available/unallocated prods-->
                 </div>
                 <div class="col">
                     <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
                 </div>
+                <datalist id="locations_to_from">
+                    {% for location in locations %}
+                        <option value="{{ location[1] }}" id="loc_{{ location[0] }}">
+                    {% endfor %}
+                </datalist>
             </div>
         </form>
     </div>

@@ -157,12 +157,15 @@ def movement():
     logistics_data = cursor.fetchall()
 
     # add suggestive content for page
-    cursor.execute("SELECT prod_name FROM products")
-    products = [x[0] for x in cursor.fetchall()]
+    cursor.execute("SELECT prod_id, prod_name, unallocated_quantity FROM products")
+    # products = [x[0] for x in cursor.fetchall()]  <----- Used this to get only product names
+    # (convert single element tuple to list)
+    products = cursor.fetchall()
     print(products)
 
-    cursor.execute("SELECT loc_name FROM location")
-    locations = [x[0] for x in cursor.fetchall()]
+    cursor.execute("SELECT loc_id, loc_name FROM location")
+    # locations = [x[0] for x in cursor.fetchall()] <----- Used this to get only location names
+    locations = cursor.fetchall()
     print(locations)
 
     if request.method == 'POST':
@@ -175,13 +178,13 @@ def movement():
         #   BAD QUERY !!!
         #
         try:
-            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, quantity, trans_time ) "
-                           "VALUES (?, ?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity, curr_time))
+            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, quantity, trans_time ) \
+                            VALUES (?, ?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity, curr_time))
             db.commit()
         except sqlite3.Error as e:
             msg = f"An error occurred: {e.args[0]}"
         else:
-            msg = f"Transaction added successfully"
+            msg = "Transaction added successfully"
     if msg:
         print(msg)
 
