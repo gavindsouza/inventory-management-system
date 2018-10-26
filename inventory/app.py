@@ -14,9 +14,9 @@ DATABASE_NAME = 'inventory.db'
 app = Flask(__name__)
 app.config.from_mapping(
     SECRET_KEY='dev',
-    DATABASE=os.path.join(app.instance_path, 'inventory.db'),
+    DATABASE=os.path.join(app.instance_path, 'database', 'inventory.db'),
 )
-app.config.from_pyfile('config.py', silent=True)
+# app.config.from_pyfile('config.py', silent=True)
 
 # listing views
 link = {x: x for x in ["location", "product", "movement"]}

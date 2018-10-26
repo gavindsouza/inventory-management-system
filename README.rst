@@ -24,23 +24,22 @@ Install necessary dependencies
 
 .. code:: console
 
-   $ pip install -r requirements.txt
+   $ pip3 install -r requirements.txt
 
-Go ahead and install as follows:
-
-.. code:: console
-
-   $ python setup.py install
 
 Usage
 ~~~~~
+
+.. code:: console
+
+    $ python3 -m flask run
 
 // add screenshots here
 
 Dependencies
 ~~~~~~~~~~~~~
 
-- Flask
+- Just Flask!
 
 .. _Dependencies: requirements.txt
 
