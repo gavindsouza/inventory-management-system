@@ -52,17 +52,23 @@ def product():
     cursor = db.cursor()
 
     # initialize page content
-    cursor.execute("CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT, \
-                    prod_name TEXT UNIQUE NOT NULL, \
-                    prod_quantity INTEGER NOT NULL, \
-                    unallocated_quantity INTEGER)")
-    cursor.execute("CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty \
-                    AFTER INSERT ON products \
-                    FOR EACH ROW \
-                    WHEN NEW.unallocated_quantity IS NULL \
-                    BEGIN \
-                        UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid; \
-                    END;")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prod_name TEXT UNIQUE NOT NULL,
+                    prod_quantity INTEGER NOT NULL,
+                    unallocated_quantity INTEGER);
+
+    """)
+    cursor.execute("""
+    CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty
+                    AFTER INSERT ON products
+                    FOR EACH ROW
+                    WHEN NEW.unallocated_quantity IS NULL
+                    BEGIN 
+                        UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid;
+                    END;
+
+    """)
     db.commit()
 
     cursor.execute("SELECT * FROM products")
@@ -103,8 +109,10 @@ def location():
     cursor = db.cursor()
 
     # initialize page content
-    cursor.execute("CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT, \
-                                 loc_name TEXT UNIQUE NOT NULL)")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 loc_name TEXT UNIQUE NOT NULL);
+    """)
     db.commit()
     cursor.execute("SELECT * FROM location")
     warehouse_data = cursor.fetchall()
@@ -142,15 +150,17 @@ def movement():
     cursor = db.cursor()
 
     # initialize page content
-    cursor.execute("CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT, \
-                                prod_id INTEGER NOT NULL, \
-                                from_loc_id INTEGER NOT NULL, \
-                                to_loc_id INTEGER NOT NULL, \
-                                prod_quantity INTEGER NOT NULL, \
-                                trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-                                FOREIGN KEY(prod_id) REFERENCES products(prod_id), \
-                                FOREIGN KEY(from_loc_id) REFERENCES location(loc_id), \
-                                FOREIGN KEY(to_loc_id) REFERENCES location(loc_id))")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                prod_id INTEGER NOT NULL,
+                                from_loc_id INTEGER NOT NULL,
+                                to_loc_id INTEGER NOT NULL,
+                                prod_quantity INTEGER NOT NULL,
+                                trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY(prod_id) REFERENCES products(prod_id),
+                                FOREIGN KEY(from_loc_id) REFERENCES location(loc_id),
+                                FOREIGN KEY(to_loc_id) REFERENCES location(loc_id));
+    """)
     db.commit()
 
     cursor.execute("SELECT * FROM logistics")
@@ -182,7 +192,8 @@ def movement():
         quantity = request.form['quantity']
         curr_time = str(datetime.datetime.now())
 
-        print(prod_name,from_loc,to_loc,quantity,curr_time, "from LINE 182")
+        print(prod_name,from_loc,to_loc,quantity,curr_time, "from LINE 195")
+        print("try removing curr_time .... from line 196")
 
         try:
             cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity, trans_time ) \
