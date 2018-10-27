@@ -96,9 +96,12 @@
 
     <script>
         const products = {};
+        // this contains unallocated products
         {% for product in products %}
             products["{{ product[1] }}"] = "{{ product[2] }}";
         {% endfor %}
+
+        console.log({{ allocated|tojson }});
 
         let slider = document.getElementById("slider_range");
         let output = document.getElementById("show_selected");

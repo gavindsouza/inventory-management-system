@@ -1,6 +1,6 @@
 # imports - standard imports
 import os
-import datetime
+import json
 import sqlite3
 
 # imports - third party imports
@@ -182,7 +182,18 @@ def movement():
     WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
     log_summary = cursor.fetchall()
 
-    print(log_summary)
+    # put in summary data here
+    alloc_json = {}
+    for row in log_summary:
+        if row[0] in alloc_json.keys():
+            alloc_json[row[0]] += [{row[2]:row[1]}]
+        else:
+            alloc_json[row[0]] = [{row[2]:row[1]}]
+    #
+    #   INSERT CRAZY DICT CONVERSION CODE HERE
+    #
+    alloc_json = json.dumps(alloc_json)
+    print(alloc_json)
 
     if request.method == 'POST':
         # transaction times are stored in UTC
@@ -224,7 +235,8 @@ def movement():
 
     return render('movement.html', title="ProductMovement",
                   link=link, trans_message=msg,
-                  products=products, locations=locations, logs=logistics_data, database=log_summary)
+                  products=products, locations=locations, allocated=alloc_json,
+                  logs=logistics_data, database=log_summary)
 
 
 @app.route('/delete')
