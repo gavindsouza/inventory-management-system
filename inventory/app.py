@@ -221,7 +221,8 @@ def movement():
                 """, (prod_id, from_loc, to_loc, quantity))
 
                 # IMPORTANT to maintain consistency
-                cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ?", (quantity, ))
+                cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ? WHERE prod_id == ?",
+                               (quantity, prod_id))
                 db.commit()
 
             except sqlite3.Error as e:
