@@ -182,18 +182,17 @@ def movement():
     WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
     log_summary = cursor.fetchall()
 
-    # put in summary data here
+    # summary data --> in format:
+    # {'Asus Zenfone 2': {'Mahalakshmi': 50, 'Gorhe': 50},
+    # 'Prada watch': {'Malad': 50, 'Mahalakshmi': 115}, 'Apple iPhone': {'Airoli': 75}}
     alloc_json = {}
     for row in log_summary:
-        if row[0] in alloc_json.keys():
-            alloc_json[row[0]] += [{row[2]:row[1]}]
-        else:
-            alloc_json[row[0]] = [{row[2]:row[1]}]
-    #
-    #   INSERT CRAZY DICT CONVERSION CODE HERE
-    #
+        try:
+            alloc_json[row[0]][row[2]] = row[1]
+        except KeyError:
+            alloc_json[row[0]] = {}
+            alloc_json[row[0]][row[2]] = row[1]
     alloc_json = json.dumps(alloc_json)
-    print(alloc_json)
 
     if request.method == 'POST':
         # transaction times are stored in UTC
