@@ -16,7 +16,6 @@ app.config.from_mapping(
     SECRET_KEY='dev',
     DATABASE=os.path.join(app.instance_path, 'database', 'inventory.db'),
 )
-# app.config.from_pyfile('config.py', silent=True)
 
 # listing views
 link = {x: x for x in ["location", "product", "movement"]}
@@ -186,18 +185,17 @@ def movement():
     print(log_summary)
 
     if request.method == 'POST':
+        # transaction times are stored in UTC
         prod_name = request.form['prod_name']
         from_loc = request.form['from_loc']
         to_loc = request.form['to_loc']
         quantity = request.form['quantity']
-        curr_time = str(datetime.datetime.now())
-
-        print(prod_name,from_loc,to_loc,quantity,curr_time, "from LINE 195")
-        print("try removing curr_time .... from line 196")
 
         try:
-            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity, trans_time ) \
-                            VALUES (?, ?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity, curr_time))
+            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity ) \
+                            VALUES (?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity,))
+
+            # cursor.execute("UPDATE products SET unallocated_quantity = ?", tuple(quantity))
             db.commit()
         except sqlite3.Error as e:
             msg = f"An error occurred: {e.args[0]}"
@@ -260,7 +258,3 @@ def edit():
 
     print("IT SHOULDN'T REACH HERE--------> app.py line 204")
     return render(type_+'.html')
-
-
-if __name__ == '__main__':
-    app.run(debug=True)

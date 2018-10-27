@@ -24,6 +24,35 @@
             </table>
         {% endif %}
         <br><hr><br>
+        <h3 align="center" class="font-weight-light">Logistics Data</h3>
+        {% if logs == None or logs|length == 0 %}
+            <h3 align="center" class="font-weight-light">Data not available yet</h3>
+        {% else %}
+            <table class="table">
+                <thead>
+                    <th scope="col">Transaction ID</th>
+                    <th scope="col">Product ID</th>
+                    <th scope="col">From Location</th>
+                    <th scope="col">To Location</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">UTC Timestamp</th>
+                </thead>
+                <tbody>
+                <!-- Showing current state (just as index.html -->
+                    {% for data in logs %}
+                        <tr>
+                            <td>{{ data[0] }}</td>
+                            <td>{{ data[1] }}</td>
+                            <td>{{ data[2] }}</td>
+                            <td>{{ data[3] }}</td>
+                            <td>{{ data[4] }}</td>
+                            <td>{{ data[5] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <br><hr><br>
         <!-- Inserting data -->
         <h3 align="center" class="font-weight-light">Make Product Movements</h3>
         <form action = "{{ url_for('movement') }}" method = "POST">
@@ -37,15 +66,15 @@
                     </datalist>
                 </div>
                 <div class="col">
-                    <input name= "from_loc" list="locations_to_from" placeholder="From Warehouse" class="form-control" autocomplete="off" required>
+                    <input name="from_loc" id="from_loc" list="locations_to_from" placeholder="From Warehouse" class="form-control" autocomplete="off">
                 </div>
                 <div class="col">
-                    <input name= "to_loc" list="locations_to_from" placeholder="To Warehouse" class="form-control" autocomplete="off" required>
+                    <input name="to_loc" id="to_loc" list="locations_to_from" placeholder="To Warehouse" class="form-control" autocomplete="off">
                 </div>
                 <div class="col slide-container">
                     <!--input name="quantity" placeholder="Quantity" class="form-control" autocomplete="off" required-->
                     <!-- ADD min / max values or something, from available/unallocated prods-->
-                    <input name="quantity" type="range" min="1" value="50" class="slider" id="slider_range" required>
+                    <input name="quantity" type="range" min="1" value="50" class="slider" id="slider_range" pattern="\S.*\S" required>
                     <p>Value: <span id="show_selected"></span>&nbsp;&nbsp;&nbsp;<span id="max_limit" class="font-weight-light"></span></p>
 
                     <script>
@@ -58,8 +87,13 @@
                         let output = document.getElementById("show_selected");
                         let max_limit = document.getElementById("max_limit");
 
-                        document.getElementById("prod_name").oninput = function() {
-                            let max_val = products[(document.getElementById("prod_name").value).toString()];
+                        document.getElementById("to_loc").oninput = function() {
+                            let max_val;
+                            if(!document.getElementById("from_loc").value){
+                                max_val = products[(document.getElementById("prod_name").value).toString()];
+                            } else {
+                                max_val = ''; //MAX_VAL is the number of products present in from_loc warehouse
+                            }
                             slider.setAttribute("max", max_val.toString());
                             max_limit.innerText = "Max: "+ max_val;
                         };
