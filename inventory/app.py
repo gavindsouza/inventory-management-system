@@ -176,7 +176,7 @@ def movement():
     locations = cursor.fetchall()
 
     #
-    #   BAD QUERY !!!
+    #   add test conditions
     #
     cursor.execute("SELECT products.prod_name, logistics.prod_quantity, location.loc_name FROM products, logistics, location \
     WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
@@ -209,14 +209,16 @@ def movement():
 
             # IMPORTANT to maintain consistency
             cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ?", (quantity, ))
-
             db.commit()
+
         except sqlite3.Error as e:
             msg = f"An error occurred: {e.args[0]}"
         else:
             msg = "Transaction added successfully"
-    if msg:
-        print(msg)
+        if msg:
+            print(msg)
+
+        return redirect(url_for('movement'))
 
     return render('movement.html', title="ProductMovement",
                   link=link, trans_message=msg,

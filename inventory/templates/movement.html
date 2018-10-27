@@ -26,36 +26,6 @@
 
         <br><hr><br>
 
-        <h3 align="center" class="font-weight-light">Logistics Data</h3>
-        {% if logs == None or logs|length == 0 %}
-            <h3 align="center" class="font-weight-light">Data not available yet</h3>
-        {% else %}
-            <table class="table">
-                <thead>
-                    <th scope="col">Transaction ID</th>
-                    <th scope="col">Product ID</th>
-                    <th scope="col">From Location</th>
-                    <th scope="col">To Location</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">UTC Timestamp</th>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                        <tr>
-                            <td>{{ log[0] }}</td>
-                            <td>{{ log[1] }}</td>
-                            <td>{{ log[2] }}</td>
-                            <td>{{ log[3] }}</td>
-                            <td>{{ log[4] }}</td>
-                            <td>{{ log[5] }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
-
-        <br><hr><br>
-
         <!-- Inserting data -->
         <h3 align="center" class="font-weight-light">Make Product Movements</h3>
         <form action = "{{ url_for('movement') }}" method = "POST">
@@ -89,7 +59,39 @@
                 </datalist>
             </div>
         </form>
+
+        <br><hr><br>
+
+        <h3 align="center" class="font-weight-light">Logistics History</h3>
+        {% if logs == None or logs|length == 0 %}
+            <h3 align="center" class="font-weight-light">Data not available yet</h3>
+        {% else %}
+            <table class="table">
+                <thead>
+                    <th scope="col">Transaction ID</th>
+                    <th scope="col">Product ID</th>
+                    <th scope="col">From Location</th>
+                    <th scope="col">To Location</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">UTC Timestamp</th>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td>{{ log[0] }}</td>
+                            <td>{{ log[1] }}</td>
+                            <td>{{ log[2] }}</td>
+                            <td>{{ log[3] }}</td>
+                            <td>{{ log[4] }}</td>
+                            <td>{{ log[5] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
     </div>
+
     <script>
         const products = {};
         {% for product in products %}
