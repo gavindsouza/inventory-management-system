@@ -68,12 +68,14 @@
         {% else %}
             <table class="table">
                 <thead>
-                    <th scope="col">Transaction ID</th>
-                    <th scope="col">Product ID</th>
-                    <th scope="col">From Location</th>
-                    <th scope="col">To Location</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">UTC Timestamp</th>
+                    <tr>
+                        <th scope="col">Transaction ID</th>
+                        <th scope="col">Product ID</th>
+                        <th scope="col">From Location</th>
+                        <th scope="col">To Location</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">UTC Timestamp</th>
+                    </tr>
                 </thead>
                 <tbody>
                     {% for log in logs %}

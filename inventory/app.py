@@ -191,34 +191,36 @@ def movement():
         to_loc = request.form['to_loc']
         quantity = request.form['quantity']
 
-        try:
-            cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
-            from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
+        # if no 'from loc' is given, that means the product is being shipped to a warehouse (init condition)
+        if from_loc in [None, '', ' ']:
+            try:
+                cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
+                from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
 
-            cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
-            to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
+                cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
+                to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
 
-            cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
-            prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
+                cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
+                prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
 
-            print(from_loc, to_loc, prod_id)
-            cursor.execute("""
-            INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity) 
-            VALUES (?, ?, ?, ?)
-            """, (prod_id, from_loc, to_loc, quantity))
+                print(from_loc, to_loc, prod_id)
+                cursor.execute("""
+                INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity) 
+                VALUES (?, ?, ?, ?)
+                """, (prod_id, from_loc, to_loc, quantity))
 
-            # IMPORTANT to maintain consistency
-            cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ?", (quantity, ))
-            db.commit()
+                # IMPORTANT to maintain consistency
+                cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ?", (quantity, ))
+                db.commit()
 
-        except sqlite3.Error as e:
-            msg = f"An error occurred: {e.args[0]}"
-        else:
-            msg = "Transaction added successfully"
-        if msg:
-            print(msg)
+            except sqlite3.Error as e:
+                msg = f"An error occurred: {e.args[0]}"
+            else:
+                msg = "Transaction added successfully"
+            if msg:
+                print(msg)
 
-        return redirect(url_for('movement'))
+            return redirect(url_for('movement'))
 
     return render('movement.html', title="ProductMovement",
                   link=link, trans_message=msg,
