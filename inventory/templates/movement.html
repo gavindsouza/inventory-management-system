@@ -101,7 +101,8 @@
             products["{{ product[1] }}"] = "{{ product[2] }}";
         {% endfor %}
 
-        console.log({{ allocated|tojson }});
+        // this contains all allocated products in form --> product: location: quantity
+        let summary = {{ allocated|tojson }};
 
         let slider = document.getElementById("slider_range");
         let output = document.getElementById("show_selected");

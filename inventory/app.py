@@ -33,8 +33,11 @@ def summary():
         warehouse = cursor.fetchall()
         cursor.execute("SELECT * FROM products")
         products = cursor.fetchall()
-        cursor.execute("SELECT prod.prod_name, logs.prod_quantity, loc.loc_name FROM products prod, logistics logs, location loc \
-        WHERE prod.prod_id == logs.prod_id AND logs.to_loc_id == loc.loc_id GROUP BY logs.to_loc_id")
+        cursor.execute("""
+        SELECT products.prod_name, logistics.prod_quantity, location.loc_name FROM products, logistics, location
+        WHERE products.prod_id == logistics.prod_id AND logistics.to_loc_id == location.loc_id 
+        GROUP BY logistics.to_loc_id
+        """)
         q_data = cursor.fetchall()
     except sqlite3.Error as e:
         msg = f"An error occurred: {e.args[0]}"
@@ -182,16 +185,19 @@ def movement():
     WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
     log_summary = cursor.fetchall()
 
-    # put in summary data here
+    # summary data --> in format:
+    # {'Asus Zenfone 2': {'Mahalakshmi': 50, 'Gorhe': 50},
+    # 'Prada watch': {'Malad': 50, 'Mahalakshmi': 115}, 'Apple iPhone': {'Airoli': 75}}
     alloc_json = {}
     for row in log_summary:
-        if row[0] in alloc_json.keys():
-            alloc_json[row[0]] += [{row[2]:row[1]}]
-        else:
-            alloc_json[row[0]] = [{row[2]:row[1]}]
-    #
-    #   INSERT CRAZY DICT CONVERSION CODE HERE
-    #
+        try:
+            if row[2] in alloc_json[row[0]].keys():
+                alloc_json[row[0]][row[2]] += row[1]
+            else:
+                alloc_json[row[0]][row[2]] = row[1]
+        except KeyError:
+            alloc_json[row[0]] = {}
+            alloc_json[row[0]][row[2]] = row[1]
     alloc_json = json.dumps(alloc_json)
     print(alloc_json)
 
