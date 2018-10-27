@@ -192,10 +192,24 @@ def movement():
         quantity = request.form['quantity']
 
         try:
-            cursor.execute("INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity ) \
-                            VALUES (?, ?, ?, ?)", (prod_name, from_loc, to_loc, quantity,))
+            cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
+            from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
 
-            # cursor.execute("UPDATE products SET unallocated_quantity = ?", tuple(quantity))
+            cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
+            to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
+
+            cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
+            prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
+
+            print(from_loc, to_loc, prod_id)
+            cursor.execute("""
+            INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity) 
+            VALUES (?, ?, ?, ?)
+            """, (prod_id, from_loc, to_loc, quantity))
+
+            # IMPORTANT to maintain consistency
+            cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ?", (quantity, ))
+
             db.commit()
         except sqlite3.Error as e:
             msg = f"An error occurred: {e.args[0]}"
@@ -209,7 +223,7 @@ def movement():
                   products=products, locations=locations, logs=logistics_data, database=log_summary)
 
 
-@app.route('/delete')   # , methods=['POST', 'GET'])
+@app.route('/delete')
 def delete():
     type_ = request.args.get('type')
     db = sqlite3.connect(DATABASE_NAME)
@@ -219,12 +233,14 @@ def delete():
         id_ = request.args.get('loc_id')
         cursor.execute("DELETE FROM location WHERE loc_id == ?", str(id_))
         db.commit()
+
         return redirect(url_for('location'))
 
     elif type_ == 'product':
         id_ = request.args.get('prod_id')
         cursor.execute("DELETE FROM products WHERE prod_id == ?", str(id_))
         db.commit()
+
         return redirect(url_for('product'))
 
 
@@ -240,8 +256,8 @@ def edit():
 
         if loc_name:
             cursor.execute("UPDATE location SET loc_name = ? WHERE loc_id == ?", (loc_name, str(loc_id)))
+            db.commit()
 
-        db.commit()
         return redirect(url_for('location'))
 
     elif type_ == 'product' and request.method == 'POST':
@@ -254,7 +270,7 @@ def edit():
         if prod_quantity:
             cursor.execute("UPDATE products SET prod_quantity = ? WHERE prod_id == ?", (prod_quantity, str(prod_id)))
         db.commit()
+
         return redirect(url_for('product'))
 
-    print("IT SHOULDN'T REACH HERE--------> app.py line 204")
-    return render(type_+'.html')
+    return render(url_for(type_))
