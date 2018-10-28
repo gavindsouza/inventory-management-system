@@ -103,21 +103,37 @@
 
         // this contains all allocated products in form --> product: location: quantity
         let summary = {{ allocated|tojson }};
+        console.log(summary);
 
         let slider = document.getElementById("slider_range");
         let output = document.getElementById("show_selected");
         let max_limit = document.getElementById("max_limit");
 
-        document.getElementById("to_loc").oninput = function() {
+        let prod_name = document.getElementById("prod_name");
+        let to_loc = document.getElementById("to_loc");
+        let from_loc = document.getElementById("from_loc");
+
+        //works fine DON'T TOUCH it lol
+        to_loc.onchange = function() {
             let max_val;
-            if(!document.getElementById("from_loc").value){
-                max_val = products[(document.getElementById("prod_name").value).toString()];
-            } else {
-                max_val = ''; //MAX_VAL is the number of products present in from_loc warehouse
+            if(!from_loc.value) {
+                max_val = products[(prod_name.value).toString()];
+                slider.setAttribute("max", max_val.toString());
+                max_limit.innerText = "Max: " + max_val;
+                console.log('to_loc --> from_loc was null ', max_val)
             }
-            slider.setAttribute("max", max_val.toString());
-            max_limit.innerText = "Max: "+ max_val;
         };
+
+        //works fine DON'T TOUCH it lol
+        from_loc.onchange = function(){
+            let max_val;
+            summary = JSON.parse(summary);
+            max_val = summary[(prod_name.value).toString()][(from_loc.value).toString()];
+            slider.setAttribute("max", max_val.toString());
+            max_limit.innerText = "Max: " + max_val;
+            console.log('from_loc --> to location updated ', max_val)
+        };
+
         output.innerHTML = slider.value;
         slider.oninput = function() {
             output.innerHTML = this.value;

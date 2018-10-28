@@ -170,16 +170,13 @@ def movement():
 
     # add suggestive content for page
     cursor.execute("SELECT prod_id, prod_name, unallocated_quantity FROM products")
-    # products = [x[0] for x in cursor.fetchall()]  <----- Used this to get only product names
-    # (convert single element tuple to list)
     products = cursor.fetchall()
 
     cursor.execute("SELECT loc_id, loc_name FROM location")
-    # locations = [x[0] for x in cursor.fetchall()] <----- Used this to get only location names
     locations = cursor.fetchall()
 
     #
-    #   add test conditions
+    #   add test conditions: --> TRY MOVING PRODUCTS TO DIFFERENT PLACES
     #
     cursor.execute("SELECT products.prod_name, logistics.prod_quantity, location.loc_name FROM products, logistics, location \
     WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
@@ -199,7 +196,7 @@ def movement():
             alloc_json[row[0]] = {}
             alloc_json[row[0]][row[2]] = row[1]
     alloc_json = json.dumps(alloc_json)
-    print(alloc_json)
+    # print(alloc_json)
 
     if request.method == 'POST':
         # transaction times are stored in UTC
