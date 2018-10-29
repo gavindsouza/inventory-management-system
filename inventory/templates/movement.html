@@ -7,12 +7,15 @@
         {% else %}
             <table class="table">
                 <thead>
+                <tr>
                     <th scope="col">Product</th>
                     <th scope="col">Warehouse</th>
                     <th scope="col">Quantity</th>
+                </tr>
                 </thead>
-                <tbody>
+                <tbody id="summary_table">
                 <!-- Showing current state (just as index.html -->
+                <!--
                     {% for data in database %}
                         <tr>
                             <td>{{ data[0] }}</td>
@@ -20,6 +23,10 @@
                             <td>{{ data[1] }}</td>
                         </tr>
                     {% endfor %}
+                 -->
+                <!-- Showing from summary (JSON) -->
+
+
                 </tbody>
             </table>
         {% endif %}
@@ -102,7 +109,7 @@
         {% endfor %}
 
         // this contains all allocated products in form --> product: location: quantity
-        let summary = {{ allocated|tojson }};
+        let summary = JSON.parse({{ allocated|tojson }});
         console.log(summary);
 
         let slider = document.getElementById("slider_range");
@@ -127,7 +134,6 @@
         //works fine DON'T TOUCH it lol
         from_loc.onchange = function(){
             let max_val;
-            summary = JSON.parse(summary);
             max_val = summary[(prod_name.value).toString()][(from_loc.value).toString()];
             slider.setAttribute("max", max_val.toString());
             max_limit.innerText = "Max: " + max_val;
@@ -137,6 +143,20 @@
         output.innerHTML = slider.value;
         slider.oninput = function() {
             output.innerHTML = this.value;
+        };
+
+        let table_summary = document.getElementById("summary_table");
+        table_summary.onload = function() {
+            let table = document.createElement("table");
+            const columns = ['Product', 'Location', 'Quantity'];
+
+            let tr =table.insertRow(-1);
+            for(let i=0;i<columns.length;i++){
+                let th = document.createElement("th");
+                th.innerHTML = columns[i];
+                tr.insertCell(th);
+            }
+
         }
     </script>
 {% endblock %}

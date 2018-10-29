@@ -22,8 +22,74 @@ link = {x: x for x in ["location", "product", "movement"]}
 link["index"] = '/'
 
 
+def init_database():
+    db = sqlite3.connect(DATABASE_NAME)
+    cursor = db.cursor()
+
+    # initialize page content
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    prod_name TEXT UNIQUE NOT NULL,
+                    prod_quantity INTEGER NOT NULL,
+                    unallocated_quantity INTEGER);
+    """)
+    cursor.execute("""
+    CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty
+                    AFTER INSERT ON products
+                    FOR EACH ROW
+                    WHEN NEW.unallocated_quantity IS NULL
+                    BEGIN 
+                        UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid;
+                    END;
+
+    """)
+
+    # initialize page content
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                 loc_name TEXT UNIQUE NOT NULL);
+    """)
+
+    # initialize page content
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                prod_id INTEGER NOT NULL,
+                                from_loc_id INTEGER NULL,
+                                to_loc_id INTEGER NOT NULL,
+                                prod_quantity INTEGER NOT NULL,
+                                trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY(prod_id) REFERENCES products(prod_id),
+                                FOREIGN KEY(from_loc_id) REFERENCES location(loc_id),
+                                FOREIGN KEY(to_loc_id) REFERENCES location(loc_id));
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS balance(prod_id INTEGER NOT NULL,
+                                loc_id INTEGER NOT NULL,
+                                quantity INTEGER NOT NULL,
+                                FOREIGN KEY(prod_id) REFERENCES products(prod_id),
+                                FOREIGN KEY(loc_id) REFERENCES location(loc_id))
+    """)
+    #
+    #   FIX the trigger
+    #
+    # cursor.execute("""
+    #    CREATE TRIGGER IF NOT EXISTS update_balance
+    #                    AFTER INSERT ON logistics
+    #                    FOR EACH ROW
+    #                    BEGIN
+    #                        INSERT OR IGNORE INTO balance
+    #                            SELECT NEW.prod_id, NEW.to_loc_id, NEW.prod_quantity FROM logistics;
+    #                        UPDATE balance
+    #                            SET quantity  = OLD.quantity + NEW.quantity WHERE rowid = NEW.rowid;
+    #                    END;
+    # """)
+
+    db.commit()
+
+
 @app.route('/')
 def summary():
+    init_database()
     msg = None
     q_data, warehouse, products = None, None, None
     db = sqlite3.connect(DATABASE_NAME)
@@ -49,29 +115,10 @@ def summary():
 
 @app.route('/product', methods=['POST', 'GET'])
 def product():
+    init_database()
     msg = None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
-
-    # initialize page content
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    prod_name TEXT UNIQUE NOT NULL,
-                    prod_quantity INTEGER NOT NULL,
-                    unallocated_quantity INTEGER);
-
-    """)
-    cursor.execute("""
-    CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty
-                    AFTER INSERT ON products
-                    FOR EACH ROW
-                    WHEN NEW.unallocated_quantity IS NULL
-                    BEGIN 
-                        UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid;
-                    END;
-
-    """)
-    db.commit()
 
     cursor.execute("SELECT * FROM products")
     products = cursor.fetchall()
@@ -106,16 +153,11 @@ def product():
 
 @app.route('/location', methods=['POST', 'GET'])
 def location():
+    init_database()
     msg = None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
 
-    # initialize page content
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                 loc_name TEXT UNIQUE NOT NULL);
-    """)
-    db.commit()
     cursor.execute("SELECT * FROM location")
     warehouse_data = cursor.fetchall()
 
@@ -147,23 +189,10 @@ def location():
 
 @app.route('/movement', methods=['POST', 'GET'])
 def movement():
+    init_database()
     msg = None
     db = sqlite3.connect(DATABASE_NAME)
     cursor = db.cursor()
-
-    # initialize page content
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                prod_id INTEGER NOT NULL,
-                                from_loc_id INTEGER NOT NULL,
-                                to_loc_id INTEGER NOT NULL,
-                                prod_quantity INTEGER NOT NULL,
-                                trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY(prod_id) REFERENCES products(prod_id),
-                                FOREIGN KEY(from_loc_id) REFERENCES location(loc_id),
-                                FOREIGN KEY(to_loc_id) REFERENCES location(loc_id));
-    """)
-    db.commit()
 
     cursor.execute("SELECT * FROM logistics")
     logistics_data = cursor.fetchall()
@@ -208,6 +237,38 @@ def movement():
         # if no 'from loc' is given, that means the product is being shipped to a warehouse (init condition)
         if from_loc in [None, '', ' ']:
             try:
+                cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
+                to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
+
+                cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
+                prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
+
+                print(from_loc, to_loc, prod_id)
+                cursor.execute("""
+                INSERT INTO logistics (prod_id, to_loc_id, prod_quantity) 
+                VALUES (?, ?, ?)
+                """, (prod_id, to_loc, quantity))
+
+                # IMPORTANT to maintain consistency
+                cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ? WHERE prod_id == ?",
+                               (quantity, prod_id))
+                db.commit()
+
+            except sqlite3.Error as e:
+                msg = f"An error occurred: {e.args[0]}"
+            else:
+                msg = "Transaction added successfully"
+
+        # if 'from loc' is given, that means the product is being shipped between warehouses
+        else:
+            #
+            #   whats down is just a copy paste of the top code block
+            #   do not run!
+            #   condition activates when from_loc is given
+            #
+            #   refactor when done as DRY
+            #
+            try:
                 cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
                 from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
 
@@ -232,8 +293,10 @@ def movement():
                 msg = f"An error occurred: {e.args[0]}"
             else:
                 msg = "Transaction added successfully"
-            if msg:
-                print(msg)
+
+        # print a transaction message if exists!
+        if msg:
+            print(msg)
 
             return redirect(url_for('movement'))
 
