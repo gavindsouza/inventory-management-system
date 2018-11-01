@@ -5,7 +5,7 @@
         {% if database == None or database|length == 0 %}
             <h3 align="center" class="font-weight-light">Summary not available yet</h3>
         {% else %}
-            <table class="table">
+            <table class="table" id="summary">
                 <thead>
                 <tr>
                     <th scope="col">Product</th>
@@ -15,7 +15,6 @@
                 </thead>
                 <tbody>
                 <!-- Showing current state (just as index.html -->
-                <!--
                     {% for data in database %}
                         <tr>
                             <td>{{ data[0] }}</td>
@@ -23,14 +22,17 @@
                             <td>{{ data[1] }}</td>
                         </tr>
                     {% endfor %}
-                 -->
                 </tbody>
             </table>
 
+            <!--
             <div id="summary_table">
             <button class="button" onclick="summarize()">Click</button>
-            <!-- JSON generated table -->
+            JSON generated table
             </div>
+
+            -->
+
         {% endif %}
 
         <br><hr><br>
@@ -147,8 +149,9 @@
             output.innerHTML = this.value;
         };
 
+        /*
         function summarize() {
-            let table_summary = document.getElementById("summary_table");
+            let table_summary = document.getElementById("summary");
             let table = document.createElement("table");
             table.setAttribute("class","table");
             const columns = ['Product', 'Warehouse', 'Quantity'];
@@ -161,13 +164,19 @@
                 th.innerHTML = columns[i];
                 tr.appendChild(th);
             }
-            console.log(tr);
+
             // table body
 
+            console.log(Object.values(summary));
+            console.log(Object.keys(products));
 
+            for(let i=0;i<products.length;i++){
+                console.log(summary[products[i]]);
+            }
             table_summary.innerHTML = "";
             table_summary.appendChild(table);
             console.log(table);
         }
+        */
     </script>
 {% endblock %}

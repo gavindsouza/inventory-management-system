@@ -204,13 +204,23 @@ def movement():
     cursor.execute("SELECT loc_id, loc_name FROM location")
     locations = cursor.fetchall()
 
-    #
     #   add test conditions: --> TRY MOVING PRODUCTS TO DIFFERENT PLACES
-    #
-    cursor.execute("SELECT products.prod_name, logistics.prod_quantity, location.loc_name FROM products, logistics, location \
-    WHERE products.prod_id == logistics.prod_id AND location.loc_id == logistics.to_loc_id")
+    #   ^ tried ------------> didnt work as product wasnt subtracted
+    cursor.execute("""
+    SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name 
+    FROM products, logistics logistics_1 INNER JOIN logistics logistics_2 , location 
+    WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
+        AND logistics_1.trans_id == logistics_2.trans_id
+    """)
+    cursor.execute("""
+    SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name 
+    FROM products, logistics logistics_1 INNER JOIN logistics logistics_2 , location 
+    WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
+        AND logistics_1.trans_id == logistics_2.trans_id
+    """)
     log_summary = cursor.fetchall()
 
+    # CHECK if reductions are calculated as well!
     # summary data --> in format:
     # {'Asus Zenfone 2': {'Mahalakshmi': 50, 'Gorhe': 50},
     # 'Prada watch': {'Malad': 50, 'Mahalakshmi': 115}, 'Apple iPhone': {'Airoli': 75}}
