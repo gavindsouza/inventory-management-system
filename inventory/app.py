@@ -204,6 +204,7 @@ def movement():
     cursor.execute("SELECT loc_id, loc_name FROM location")
     locations = cursor.fetchall()
 
+    #
     #   add test conditions: --> TRY MOVING PRODUCTS TO DIFFERENT PLACES
     #   ^ tried ------------> didnt work as product wasnt subtracted
     cursor.execute("""
@@ -212,9 +213,10 @@ def movement():
     WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
         AND logistics_1.trans_id == logistics_2.trans_id
     """)
+    # try self join here
     cursor.execute("""
     SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name 
-    FROM products, logistics logistics_1 INNER JOIN logistics logistics_2 , location 
+    FROM products, logistics logistics_1 JOIN logistics logistics_2 , location 
     WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
         AND logistics_1.trans_id == logistics_2.trans_id
     """)
@@ -247,21 +249,31 @@ def movement():
         # if no 'from loc' is given, that means the product is being shipped to a warehouse (init condition)
         if from_loc in [None, '', ' ']:
             try:
-                cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
-                to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
-
-                cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
-                prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
-
-                print(from_loc, to_loc, prod_id)
                 cursor.execute("""
-                INSERT INTO logistics (prod_id, to_loc_id, prod_quantity) 
-                VALUES (?, ?, ?)
-                """, (prod_id, to_loc, quantity))
+                    INSERT INTO logistics (prod_id, to_loc_id, prod_quantity) 
+                    SELECT products.prod_id, location.loc_id, ? 
+                    FROM products, location 
+                    WHERE products.prod_name == ? AND location.loc_name == ?
+                """, (quantity, prod_name, to_loc))
+
+                # cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
+                # to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
+                #
+                # cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
+                # prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
+                #
+                # print(from_loc, to_loc, prod_id)
+                # cursor.execute("""
+                # INSERT INTO logistics (prod_id, to_loc_id, prod_quantity)
+                # VALUES (?, ?, ?)
+                # """, (prod_id, to_loc, quantity))
 
                 # IMPORTANT to maintain consistency
-                cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ? WHERE prod_id == ?",
-                               (quantity, prod_id))
+                cursor.execute("""
+                UPDATE products 
+                SET unallocated_quantity = unallocated_quantity - ? 
+                WHERE prod_name == ?
+                """, (quantity, prod_name))
                 db.commit()
 
             except sqlite3.Error as e:
