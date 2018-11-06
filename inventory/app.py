@@ -55,7 +55,7 @@ def init_database():
     CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 prod_id INTEGER NOT NULL,
                                 from_loc_id INTEGER NULL,
-                                to_loc_id INTEGER NOT NULL,
+                                to_loc_id INTEGER NULL,
                                 prod_quantity INTEGER NOT NULL,
                                 trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                 FOREIGN KEY(prod_id) REFERENCES products(prod_id),
@@ -258,13 +258,14 @@ def movement():
                 msg = "Transaction added successfully"
 
         elif to_loc in [None, '', ' ']:
+            print("To Location wasn't specified, will be unallocated")
             try:
                 cursor.execute("""
                 INSERT INTO logistics (prod_id, from_loc_id, prod_quantity) 
                 SELECT products.prod_id, location.loc_id, ? 
                 FROM products, location 
                 WHERE products.prod_name == ? AND location.loc_name == ?
-                """, (quantity, prod_name, to_loc))
+                """, (quantity, prod_name, from_loc))
 
                 # IMPORTANT to maintain consistency
                 cursor.execute("""
