@@ -207,19 +207,28 @@ def movement():
     #
     #   add test conditions: --> TRY MOVING PRODUCTS TO DIFFERENT PLACES
     #   ^ tried ------------> didnt work as product wasnt subtracted
+    # cursor.execute("""
+    # SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name
+    # FROM products, logistics logistics_1 INNER JOIN logistics logistics_2 , location
+    # WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
+    #     AND logistics_1.trans_id == logistics_2.trans_id
+    # """)
+
+    # NEW method here yay!
+    # cursor.execute("""
+    # SELECT SUM(l1.prod_quantity) - SUM(l2.prod_quantity)
+    # FROM logistics l1, logistics l2, products p
+    # WHERE l1.prod_id == l2.prod_id AND l1.prod_id == p.prod_id
+    # AND l1.prod_id == ? AND l1.to_loc_id == ? AND l2.from_loc_id == ?
+    # GROUP BY p.prod_name
+    # """, (1, 1, 1))
+
     cursor.execute("""
-    SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name 
-    FROM products, logistics logistics_1 INNER JOIN logistics logistics_2 , location 
-    WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
-        AND logistics_1.trans_id == logistics_2.trans_id
-    """)
-    # try self join here
-    cursor.execute("""
-    SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name 
-    FROM products, logistics logistics_1 JOIN logistics logistics_2 , location 
-    WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
-        AND logistics_1.trans_id == logistics_2.trans_id
-    """)
+    SELECT log.prod_id, log.to_loc_id, SUM(log.prod_quantity)
+    FROM logistics log
+    WHERE log.prod_id = ? OR log.to_loc_id = ?
+
+    """, (1, 1))
     log_summary = cursor.fetchall()
 
     # CHECK if reductions are calculated as well!
@@ -256,6 +265,7 @@ def movement():
                     WHERE products.prod_name == ? AND location.loc_name == ?
                 """, (quantity, prod_name, to_loc))
 
+                """Tried the following method first ---> """
                 # cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
                 # to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
                 #
@@ -281,16 +291,39 @@ def movement():
             else:
                 msg = "Transaction added successfully"
 
-        # if 'from loc' is given, that means the product is being shipped between warehouses
-        else:
-            #
-            #   whats down is just a copy paste of the top code block
-            #   do not run!
-            #   condition activates when from_loc is given
-            #
-            #   refactor when done as DRY
-            #
+        elif to_loc in [None, '', ' ']:
             try:
+                cursor.execute("""
+                INSERT INTO logistics (prod_id, from_loc_id, prod_quantity) 
+                SELECT products.prod_id, location.loc_id, ? 
+                FROM products, location 
+                WHERE products.prod_name == ? AND location.loc_name == ?
+                """, (quantity, prod_name, to_loc))
+
+                # IMPORTANT to maintain consistency
+                cursor.execute("""
+                UPDATE products 
+                SET unallocated_quantity = unallocated_quantity + ? 
+                WHERE prod_name == ?
+                """, (quantity, prod_name))
+                db.commit()
+
+            except sqlite3.Error as e:
+                msg = f"An error occurred: {e.args[0]}"
+            else:
+                msg = "Transaction added successfully"
+
+        # if 'from loc' and 'to_loc' given the product is being shipped between warehouses
+        else:
+            try:
+                # cursor.execute("""
+                #     INSERT INTO logistics (prod_id, to_loc_id, prod_quantity)
+                #     SELECT products.prod_id, l1.loc_id, l2.loc_id, ?
+                #     FROM products, location l1, location l2
+                #     WHERE products.prod_name == ? AND l1.loc_name == ? AND l2.loc_name == ?
+                # """, (quantity, prod_name, to_loc, from_loc))
+                # SELECT loc_id, loc_name FROM location WHERE loc_name IN ("Mahalakshmi", "Airoli", "Malad") ORDER BY
+
                 cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
                 from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
 
@@ -300,15 +333,10 @@ def movement():
                 cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
                 prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
 
-                print(from_loc, to_loc, prod_id)
                 cursor.execute("""
-                INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity) 
+                INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity)
                 VALUES (?, ?, ?, ?)
                 """, (prod_id, from_loc, to_loc, quantity))
-
-                # IMPORTANT to maintain consistency
-                cursor.execute("UPDATE products SET unallocated_quantity = unallocated_quantity - ? WHERE prod_id == ?",
-                               (quantity, prod_id))
                 db.commit()
 
             except sqlite3.Error as e:
@@ -319,7 +347,6 @@ def movement():
         # print a transaction message if exists!
         if msg:
             print(msg)
-
             return redirect(url_for('movement'))
 
     return render('movement.html', title="ProductMovement",
