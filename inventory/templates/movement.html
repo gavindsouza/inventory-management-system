@@ -16,11 +16,13 @@
                 <tbody>
                 <!-- Showing current state (just as index.html -->
                     {% for data in database %}
+                        {% if data[2] != 0 %}
                         <tr>
                             <td>{{ data[0] }}</td>
-                            <td>{{ data[2] }}</td>
                             <td>{{ data[1] }}</td>
+                            <td>{{ data[2] }}</td>
                         </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>

@@ -62,28 +62,6 @@ def init_database():
                                 FOREIGN KEY(from_loc_id) REFERENCES location(loc_id),
                                 FOREIGN KEY(to_loc_id) REFERENCES location(loc_id));
     """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS balance(prod_id INTEGER NOT NULL,
-                                loc_id INTEGER NOT NULL,
-                                quantity INTEGER NOT NULL,
-                                FOREIGN KEY(prod_id) REFERENCES products(prod_id),
-                                FOREIGN KEY(loc_id) REFERENCES location(loc_id))
-    """)
-    #
-    #   FIX the trigger
-    #
-    # cursor.execute("""
-    #    CREATE TRIGGER IF NOT EXISTS update_balance
-    #                    AFTER INSERT ON logistics
-    #                    FOR EACH ROW
-    #                    BEGIN
-    #                        INSERT OR IGNORE INTO balance
-    #                            SELECT NEW.prod_id, NEW.to_loc_id, NEW.prod_quantity FROM logistics;
-    #                        UPDATE balance
-    #                            SET quantity  = OLD.quantity + NEW.quantity WHERE rowid = NEW.rowid;
-    #                    END;
-    # """)
-
     db.commit()
 
 
@@ -100,9 +78,7 @@ def summary():
         cursor.execute("SELECT * FROM products")
         products = cursor.fetchall()
         cursor.execute("""
-        SELECT products.prod_name, logistics.prod_quantity, location.loc_name FROM products, logistics, location
-        WHERE products.prod_id == logistics.prod_id AND logistics.to_loc_id == location.loc_id 
-        GROUP BY logistics.to_loc_id
+        SELECT prod_name, unallocated_quantity, prod_quantity FROM products
         """)
         q_data = cursor.fetchall()
     except sqlite3.Error as e:
@@ -204,32 +180,35 @@ def movement():
     cursor.execute("SELECT loc_id, loc_name FROM location")
     locations = cursor.fetchall()
 
-    #
-    #   add test conditions: --> TRY MOVING PRODUCTS TO DIFFERENT PLACES
-    #   ^ tried ------------> didnt work as product wasnt subtracted
-    # cursor.execute("""
-    # SELECT products.prod_name, logistics_1.prod_quantity, location.loc_name
-    # FROM products, logistics logistics_1 INNER JOIN logistics logistics_2 , location
-    # WHERE products.prod_id == logistics_1.prod_id AND location.loc_id == logistics_1.to_loc_id
-    #     AND logistics_1.trans_id == logistics_2.trans_id
-    # """)
+    log_summary = []
+    for p_id in [x[0] for x in products]:
+        cursor.execute("SELECT prod_name FROM products WHERE prod_id = ?", (p_id, ))
+        temp_prod_name = cursor.fetchone()
 
-    # NEW method here yay!
-    # cursor.execute("""
-    # SELECT SUM(l1.prod_quantity) - SUM(l2.prod_quantity)
-    # FROM logistics l1, logistics l2, products p
-    # WHERE l1.prod_id == l2.prod_id AND l1.prod_id == p.prod_id
-    # AND l1.prod_id == ? AND l1.to_loc_id == ? AND l2.from_loc_id == ?
-    # GROUP BY p.prod_name
-    # """, (1, 1, 1))
+        for l_id in [x[0] for x in locations]:
+            cursor.execute("SELECT loc_name FROM location WHERE loc_id = ?", (l_id,))
+            temp_loc_name = cursor.fetchone()
 
-    cursor.execute("""
-    SELECT log.prod_id, log.to_loc_id, SUM(log.prod_quantity)
-    FROM logistics log
-    WHERE log.prod_id = ? OR log.to_loc_id = ?
+            cursor.execute("""
+            SELECT SUM(log.prod_quantity)
+            FROM logistics log
+            WHERE log.prod_id = ? AND log.to_loc_id = ?
+            """, (p_id, l_id))
+            sum_to_loc = cursor.fetchone()
 
-    """, (1, 1))
-    log_summary = cursor.fetchall()
+            cursor.execute("""
+            SELECT SUM(log.prod_quantity)
+            FROM logistics log
+            WHERE log.prod_id = ? AND log.from_loc_id = ?
+            """, (p_id, l_id))
+            sum_from_loc = cursor.fetchone()
+
+            if sum_from_loc[0] is None:
+                sum_from_loc = (0,)
+            if sum_to_loc[0] is None:
+                sum_to_loc = (0,)
+
+            log_summary += [(temp_prod_name + temp_loc_name + (sum_to_loc[0] - sum_from_loc[0],))]
 
     # CHECK if reductions are calculated as well!
     # summary data --> in format:
@@ -238,13 +217,13 @@ def movement():
     alloc_json = {}
     for row in log_summary:
         try:
-            if row[2] in alloc_json[row[0]].keys():
-                alloc_json[row[0]][row[2]] += row[1]
+            if row[1] in alloc_json[row[0]].keys():
+                alloc_json[row[0]][row[1]] += row[2]
             else:
-                alloc_json[row[0]][row[2]] = row[1]
-        except KeyError:
+                alloc_json[row[0]][row[1]] = row[2]
+        except (KeyError, TypeError):
             alloc_json[row[0]] = {}
-            alloc_json[row[0]][row[2]] = row[1]
+            alloc_json[row[0]][row[1]] = row[2]
     alloc_json = json.dumps(alloc_json)
     # print(alloc_json)
 
@@ -264,19 +243,6 @@ def movement():
                     FROM products, location 
                     WHERE products.prod_name == ? AND location.loc_name == ?
                 """, (quantity, prod_name, to_loc))
-
-                """Tried the following method first ---> """
-                # cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
-                # to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
-                #
-                # cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
-                # prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
-                #
-                # print(from_loc, to_loc, prod_id)
-                # cursor.execute("""
-                # INSERT INTO logistics (prod_id, to_loc_id, prod_quantity)
-                # VALUES (?, ?, ?)
-                # """, (prod_id, to_loc, quantity))
 
                 # IMPORTANT to maintain consistency
                 cursor.execute("""
@@ -316,14 +282,6 @@ def movement():
         # if 'from loc' and 'to_loc' given the product is being shipped between warehouses
         else:
             try:
-                # cursor.execute("""
-                #     INSERT INTO logistics (prod_id, to_loc_id, prod_quantity)
-                #     SELECT products.prod_id, l1.loc_id, l2.loc_id, ?
-                #     FROM products, location l1, location l2
-                #     WHERE products.prod_name == ? AND l1.loc_name == ? AND l2.loc_name == ?
-                # """, (quantity, prod_name, to_loc, from_loc))
-                # SELECT loc_id, loc_name FROM location WHERE loc_name IN ("Mahalakshmi", "Airoli", "Malad") ORDER BY
-
                 cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
                 from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
 
@@ -400,7 +358,10 @@ def edit():
         if prod_name:
             cursor.execute("UPDATE products SET prod_name = ? WHERE prod_id == ?", (prod_name, str(prod_id)))
         if prod_quantity:
-            cursor.execute("UPDATE products SET prod_quantity = ? WHERE prod_id == ?", (prod_quantity, str(prod_id)))
+            cursor.execute("SELECT prod_quantity FROM products WHERE prod_id = ?", (prod_id,))
+            old_prod_quantity = cursor.fetchone()[0]
+            cursor.execute("UPDATE products SET prod_quantity = ?, unallocated_quantity =  unallocated_quantity + ? - ?"
+                           "WHERE prod_id == ?", (prod_quantity, prod_quantity, old_prod_quantity, str(prod_id)))
         db.commit()
 
         return redirect(url_for('product'))

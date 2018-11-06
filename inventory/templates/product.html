@@ -25,7 +25,10 @@
                                 <div class="modal-dialog" role="document">
                                     <div class="modal-content">
                                         <div class="modal-body"><input name="prod_name" placeholder="{{ product[1] }}"></div>
-                                        <div class="modal-body"><input name="prod_quantity" placeholder="{{ product[2] }}"></div>
+                                        <div class="modal-body">
+                                            <input name="prod_quantity" placeholder="{{ product[2] }}">
+                                            <text class="font-weight-light">(only increase count)</text>
+                                        </div>
                                         <div class="modal-footer">
                                             <input name="prod_id" value="{{ product[0] }}" hidden aria-hidden="true">
                                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
