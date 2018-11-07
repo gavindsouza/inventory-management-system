@@ -321,6 +321,31 @@ def delete():
 
     if type_ == 'location':
         id_ = request.args.get('loc_id')
+
+        cursor.execute("SELECT prod_id, SUM(prod_quantity) FROM logistics WHERE to_loc_id = ? GROUP BY prod_id", (id_,))
+        in_place = cursor.fetchall()
+
+        cursor.execute("SELECT prod_id, SUM(prod_quantity) FROM logistics WHERE from_loc_id = ? GROUP BY prod_id", (id_,))
+        out_place = cursor.fetchall()
+
+        # converting list of tuples to dict
+        in_place = dict(in_place)
+        out_place = dict(out_place)
+
+        # print(in_place, out_place)
+        all_place = {}
+        for x in in_place.keys():
+            if x in out_place.keys():
+                all_place[x] = in_place[x] - out_place[x]
+            else:
+                all_place[x] = in_place[x]
+        # print(all_place)
+
+        for products_ in all_place.keys():
+            cursor.execute("""
+            UPDATE products SET unallocated_quantity = unallocated_quantity + ? WHERE prod_id = ?
+            """, (all_place[products_], products_))
+
         cursor.execute("DELETE FROM location WHERE loc_id == ?", str(id_))
         db.commit()
 
