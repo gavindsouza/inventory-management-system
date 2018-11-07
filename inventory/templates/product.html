@@ -21,12 +21,32 @@
                         <td>
                             <button name="button" type="button" class="btn btn-success" value= "edit" data-toggle="modal" data-target="#edit_{{ product[0] }}" >edit</button><br>
                             <div id="edit_{{ product[0] }}" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="trans_message" aria-hidden="true">
-                                <form action="{{ url_for('edit', type='product') }}" method="post">
+                                <form action="{{ url_for('edit', type='product') }}" method="post" class="base_form">
                                 <div class="modal-dialog" role="document">
                                     <div class="modal-content">
                                         <div class="modal-body"><input name="prod_name" placeholder="{{ product[1] }}"></div>
                                         <div class="modal-body">
-                                            <input name="prod_quantity" placeholder="{{ product[2] }}">
+                                            <input name="prod_quantity" placeholder="{{ product[2] }}" id="input_{{ product[0] }}" type="number">
+                                            <script>
+                                                document.getElementById("input_{{ product[0] }}").oninput = function(){
+                                                    let all = document.getElementsByClassName("btn btn-primary");
+                                                    for(let i=0;i<all.length;i++){
+                                                        all[i].disabled = true;
+                                                    }
+                                                    const curr_qty = {{ product[2] }};
+                                                    let in_qty = parseInt(document.getElementById("input_{{ product[0] }}").value);
+
+                                                    //console.log(in_qty);
+                                                    //console.log(curr_qty);
+
+                                                    if(in_qty > curr_qty){
+                                                        //console.log("OKAYY");
+                                                        for(let i=0;i<all.length;i++){
+                                                            all[i].disabled = false;
+                                                        }
+                                                    }
+                                                };
+                                            </script>
                                             <text class="font-weight-light">(only increase count)</text>
                                         </div>
                                         <div class="modal-footer">
@@ -59,4 +79,19 @@
             </tbody>
         </table>
     </div>
+    <script>
+        let close = document.getElementsByClassName("btn btn-default");
+        for(let i=0; i<close.length; i++){
+            close[i].onclick = function () {
+                let clear_fields = document.getElementsByClassName("base_form");
+                for(let i=0;i<clear_fields.length;i++){
+                    clear_fields[i].reset();
+                }
+                let all = document.getElementsByClassName("btn btn-primary");
+                for(let i=0;i<all.length;i++){
+                    all[i].disabled = false;
+                }
+            }
+        }
+    </script>
 {% endblock %}
