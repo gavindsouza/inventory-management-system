@@ -69,7 +69,7 @@ The application can be accessed at _localhost:5000_ in your browser
 
 ![](docs/util/4.gif)
 
-This view of the system can be accessed for demo purposes on installation, to start afresh remove thr inventory.db file from the parent folder
+This view of the system can be accessed for demo purposes on installation, to start afresh remove thr inventory.sqlite file from the parent folder
 
 ![](docs/util/5.gif)
 
@@ -88,15 +88,15 @@ Adding locations needs only the name to be added
 
 #### Moving Things Around
 
-Products can be moved into and between warehouses after they have been added to the system
+Products can be moved into and between warehouses *only after* they have been added to the system
 
 ![](docs/util/8.gif)
 
-"Moving into locations"
+Moving into locations
 
 ![](docs/util/9.gif)
 
-"Moving between locations"
+Moving between locations
 
 #### Editing Existing Information
 

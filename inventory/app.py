@@ -8,7 +8,7 @@ from flask import Flask, url_for, request, redirect
 from flask import render_template as render
 
 # global constants
-DATABASE_NAME = 'inventory.db'
+DATABASE_NAME = 'inventory.sqlite'
 
 # setting up Flask instance
 app = Flask(__name__)
