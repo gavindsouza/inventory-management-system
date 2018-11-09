@@ -54,7 +54,7 @@
                     <p>Value: <span id="show_selected"></span>&nbsp;&nbsp;&nbsp;<span id="max_limit" class="font-weight-light"></span></p>
                 </div>
                 <div class="col">
-                    <input type= "submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
+                    <input type= "submit" id="submit" class="btn btn-info btn-group-toggle" value= "submit" /><br>
                 </div>
                 <datalist id="locations_to_from">
                     {% for location in locations %}
@@ -124,7 +124,10 @@
                 max_val = products[(prod_name.value).toString()];
                 slider.setAttribute("max", max_val.toString());
                 max_limit.innerText = "Max: " + max_val;
-                console.log('to_loc --> from_loc was null ', max_val)
+                //console.log('to_loc --> from_loc was null ', max_val)
+                if(this.value > summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()){
+                    document.getElementById("submit").disabled = true;
+            }
             }
         };
 
@@ -134,14 +137,21 @@
             max_val = summary[(prod_name.value).toString()][(from_loc.value).toString()];
             slider.setAttribute("max", max_val.toString());
             max_limit.innerText = "Max: " + max_val;
-            console.log('from_loc --> to location updated ', max_val)
+            //console.log('from_loc --> to location updated ', max_val);
+            if(this.value > summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()){
+                document.getElementById("submit").disabled = true;
+            }
         };
 
         output.innerHTML = slider.value;
         slider.oninput = function() {
             output.innerHTML = this.value;
-        };
 
+            if(this.value > summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()){
+                document.getElementById("submit").disabled = true;
+            }
+
+        };
         /*
         function summarize() {
             let table_summary = document.getElementById("summary");
