@@ -50,7 +50,7 @@
                 </div>
                 <div class="col slide-container">
                     <!--input name="quantity" placeholder="Quantity" class="form-control" autocomplete="off" required-->
-                    <input name="quantity" type="range" min="1" value="50" class="slider" id="slider_range" required title="Product Range">
+                    <input name="quantity" type="range" min="0" value="" class="slider" id="slider_range" required title="Product Range">
                     <p>Value: <span id="show_selected"></span>&nbsp;&nbsp;&nbsp;<span id="max_limit" class="font-weight-light"></span></p>
                 </div>
                 <div class="col">
@@ -125,10 +125,15 @@
                 slider.setAttribute("max", max_val.toString());
                 max_limit.innerText = "Max: " + max_val;
                 //console.log('to_loc --> from_loc was null ', max_val)
-                if(this.value > summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()){
+
+                if(max_val === 0){
                     document.getElementById("submit").disabled = true;
+                }else{
+                    document.getElementById("submit").disabled = false;
+                }
             }
-            }
+
+            output.innerHTML = slider.value;
         };
 
         //works fine DON'T TOUCH it lol
@@ -138,9 +143,14 @@
             slider.setAttribute("max", max_val.toString());
             max_limit.innerText = "Max: " + max_val;
             //console.log('from_loc --> to location updated ', max_val);
-            if(this.value > summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()){
+
+            if(max_val === 0){
                 document.getElementById("submit").disabled = true;
+            }else{
+                document.getElementById("submit").disabled = false;
             }
+
+            output.innerHTML = slider.value;
         };
 
         output.innerHTML = slider.value;
@@ -149,37 +159,11 @@
 
             if(this.value > summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()){
                 document.getElementById("submit").disabled = true;
+            }else{
+                document.getElementById("submit").disabled = false;
             }
 
         };
-        /*
-        function summarize() {
-            let table_summary = document.getElementById("summary");
-            let table = document.createElement("table");
-            table.setAttribute("class","table");
-            const columns = ['Product', 'Warehouse', 'Quantity'];
 
-            // table head
-            let tr =table.insertRow(-1);
-            for(let i=0;i<columns.length;i++){
-                let th = document.createElement("th");
-                th.setAttribute("scope", "col");
-                th.innerHTML = columns[i];
-                tr.appendChild(th);
-            }
-
-            // table body
-
-            console.log(Object.values(summary));
-            console.log(Object.keys(products));
-
-            for(let i=0;i<products.length;i++){
-                console.log(summary[products[i]]);
-            }
-            table_summary.innerHTML = "";
-            table_summary.appendChild(table);
-            console.log(table);
-        }
-        */
     </script>
 {% endblock %}
