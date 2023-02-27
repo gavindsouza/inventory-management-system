@@ -12,6 +12,8 @@
         - [Inserting products and locations](#adding-products-and-locations)
         - [Moving things around](#moving-things-around)
         - [Editing Existing Data](#editing-existing-information)
+        - [Production Setup](#production-setup)
+  - [Dependencies](#dependencies)
   - [License](#license)
 
 ## Installation
@@ -45,17 +47,10 @@ On the _logistics  page_, movement of products can be performed. It also maintai
 
 ### Starting Things Up
 
-To run the application, change the current working directory to
-\~/inventory-management-system/inventory/
+To try out the application, run the following from the cloned directory:
 
 ``` sourceCode console
-$ cd inventory
-```
-
-run the app by typing the following command in your terminal
-
-``` sourceCode console
-$ python3 -m flask run
+$ flask --app inventory.app run --debug
 ```
 
 ![](docs/util/3.gif)
@@ -107,6 +102,15 @@ Deleting Products and Locations on the System
 
 ![](docs/util/12.gif)
 
+## Production Setup
+
+You may want to maintain your database file in a separate location (by setting `DATABASE_NAME` environment variable) and back that up periodically. Considering `gunicorn` for this setup, equivalent command may look something like:
+
+```bash
+$ DATABASE_NAME=/home/user/inventory.sqlite gunicorn -w 4 inventory.app:app
+```
+
+Checkout Flask's production [deployment guide](https://flask.palletsprojects.com/en/2.2.x/deploying/) for more information.
 
 ## Dependencies
 

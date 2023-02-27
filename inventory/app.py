@@ -1,12 +1,15 @@
 # imports - standard imports
 import json
+import os
 import sqlite3
 from collections import defaultdict
+from pathlib import Path
 
 # imports - third party imports
 from flask import Flask, redirect, render_template, request
 
 DATABASE_NAME = "inventory.sqlite"
+_DATABASE_PATH = Path(__file__).parent.parent / DATABASE_NAME
 VIEWS = {
     "Summary": "/",
     "Stock": "/product",
@@ -16,9 +19,14 @@ VIEWS = {
 EMPTY_SYMBOLS = {"", " ", None}
 
 app = Flask(__name__)
-app.config.update(
-    TEMPLATES_AUTO_RELOAD=True,
-)
+
+if os.environ.get("FLASK_DEBUG") == "1":
+    app.config.update(TEMPLATES_AUTO_RELOAD=True)
+    DATABASE_NAME = _DATABASE_PATH.resolve()
+else:
+    DATABASE_NAME = os.environ.get("DATABASE_NAME") or _DATABASE_PATH.resolve()
+
+print(f"Using database: {DATABASE_NAME}")
 
 
 @app.before_first_request
