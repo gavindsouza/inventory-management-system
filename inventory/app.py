@@ -158,12 +158,14 @@ def update_warehouse_data(conn: sqlite3.Connection):
     if from_loc in EMPTY_SYMBOLS:
         column_name = "to_loc_id"
         operation = "-"
+        location_name = to_loc
         update_unallocated_quantity = True
 
     # To Location wasn't specified, will be unallocated
     elif to_loc in EMPTY_SYMBOLS:
         column_name = "from_loc_id"
         operation = "+"
+        location_name = from_loc
         update_unallocated_quantity = True
 
     # if 'from loc' and 'to_loc' given the product is being shipped between warehouses
@@ -183,7 +185,7 @@ def update_warehouse_data(conn: sqlite3.Connection):
             f"INSERT INTO logistics (prod_id, {column_name}, prod_quantity) "
             "SELECT products.prod_id, location.loc_id, ? FROM products, location "
             "WHERE products.prod_name = ? AND location.loc_name = ?",
-            (quantity, prod_name, to_loc),
+            (quantity, prod_name, location_name),
         )
         conn.execute(
             f"UPDATE products SET unallocated_quantity = unallocated_quantity {operation} ? WHERE prod_name = ?",

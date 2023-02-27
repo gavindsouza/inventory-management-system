@@ -82,7 +82,7 @@
 
 <script>
     // this contains unallocated products
-    const products = {{ products| tojson }}.map(s => s.slice(1));
+    const products = Object.fromEntries({{ products| tojson }}.map(s => s.slice(1)));
     // this contains all allocated products in form --> product: location: quantity
     let summary = JSON.parse({{ allocated| tojson }});
 
@@ -95,7 +95,7 @@
     let from_loc = document.getElementById("from_loc");
 
     to_loc.onchange = function () {
-        if (!from_loc.value) {
+        if (!from_loc.value && prod_name.value) {
             let max_val = products[(prod_name.value).toString()];
             slider.setAttribute("max", max_val.toString());
             document.getElementById("submit").disabled = (max_val === 0);
@@ -114,10 +114,9 @@
         output.innerHTML = slider.value;
     };
     slider.oninput = function () {
-        let curr_val = parseInt(this.value);
-        let max_val = parseInt(summary[(prod_name.value).toString()][(from_loc.value).toString()].toString());
-
         output.innerHTML = this.value;
+        let curr_val = parseInt(this.value);
+        let max_val = from_loc.value ? parseInt(summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()) : parseInt(products[(prod_name.value).toString()].toString());
         document.getElementById("submit").disabled = (curr_val > max_val);
     };
 
