@@ -12,13 +12,11 @@
         - [Inserting products and locations](#adding-products-and-locations)
         - [Moving things around](#moving-things-around)
         - [Editing Existing Data](#editing-existing-information)
-  - [Dependencies](requirements.txt)
   - [License](#license)
 
 ## Installation
 
-Clone the git
-repository:
+Clone the git repository:
 
 ``` sourceCode console
 $ git clone https://github.com/gavindsouza/inventory-management-system.git
@@ -26,17 +24,14 @@ $ cd inventory-management-system
 ```
 ![](docs/util/1.gif)
 
-Install necessary dependencies
+Create a virtual environment and install necessary dependencies:
 
-``` sourceCode console
-$ pip3 install -r requirements.txt
+```bash
+$ python3 -m venv venv
+$ source ./venv/bin/activate
+$ pip install -U pip -e .
 ```
 
-which is actually the same as
-
-``` sourceCode console
-$ pip3 install flask
-```
 ![](docs/util/2.gif)
 
 

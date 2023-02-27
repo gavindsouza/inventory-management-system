@@ -1,7 +1,0 @@
-__name__ = "inventory-management-system"
-__version__ = "1.0"
-__url__ = "https://github.com/gavindsouza/inventory-management-system"
-__author__ = "Gavin D'souza"
-__email__ = "gavin18d@gmail.com"
-__description__ = "Basic Inventory Management System powered by Flask"
-__license__ = "MIT"
