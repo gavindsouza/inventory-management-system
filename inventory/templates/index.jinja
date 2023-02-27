@@ -1,0 +1,62 @@
+{% extends 'base-template.jinja' %}
+{% block content %}
+    <div class="container">
+    <h3 align="center">Description</h3>
+        <div style="height: 50%;width: 100%; float: left">
+        {% if not warehouses %}
+        <div style="float: left;width:50%;">
+            <h3 align="center" class="font-weight-light">No Warehouse Data Available Yet</h3>
+        </div>
+        {% else %}
+        <div style="float:left;width:50%">
+            <table class="table">
+                <thead><tr><th scope="col">loc_id</th><th scope="col">Name</th></tr></thead>
+                <tbody>
+                    {% for warehouse in warehouses %}
+                    <tr><td>{{ warehouse[0] }}</td><td>{{ warehouse[1] }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        {% if not products %}
+        <div style="float: right;width: 50%;">
+            <h3 align="center" class="font-weight-light">No Product Data Available Yet</h3>
+        </div>
+        {% else %}
+        <div style="float:right;width:50%;">
+            <table class="table">
+                <thead><tr><th scope="col">prod_id</th><th scope="col">Name</th><th scope="col">Count</th></tr></thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr><td>{{ product[0] }}</td><td>{{ product[1] }}</td><td>{{ product[2] }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        </div>
+    </div>
+
+    <div class="container" style="float: contour;" align="center">
+    <h3 align="center">Summary</h3>
+        <div class="form-horizontal" title="Summary">
+        {% if not summary %}
+        <h3 align="center" class="font-weight-light">Summary not available yet</h3>
+        {% else %}
+        <div>
+            <table class="table">
+                <thead>
+                    <tr><th scope="col">Product</th><th scope="col">Un-Allocated</th><th scope="col">Total Count</th></tr>
+                </thead>
+                <thead>
+                    {% for data in summary %}
+                    <tr><td>{{ data[0] }}</td><td>{{ data[1] }}</td><td>{{ data[2] }}</td></tr>
+                    {% endfor %}
+                </thead>
+            </table>
+        </div>
+        {% endif %}
+        </div>
+    </div>
+{% endblock %}

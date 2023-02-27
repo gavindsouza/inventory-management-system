@@ -1,0 +1,125 @@
+{% extends 'base-template.jinja' %}
+{% block content %}
+<div class="container">
+    <h3 align="center" class="font-weight-light">Summary</h3>
+    {% if not summary %}
+    <h3 align="center" class="font-weight-light">Summary not available yet</h3>
+    {% else %}
+    <table class="table" id="summary">
+        <thead><tr><th scope="col">Product</th><th scope="col">Warehouse</th><th scope="col">Quantity</th></tr></thead>
+        <tbody>
+            {% for data in summary %}
+            {% if data[2] != 0 %}
+            <tr><td>{{ data[0] }}</td><td>{{ data[1] }}</td><td>{{ data[2] }}</td></tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <br>
+    <hr><br>
+
+    <h3 align="center" class="font-weight-light">Make Stock Movements</h3>
+    <form action="{{ url_for('movement') }}" method="POST">
+        <div class="form-row">
+            <div class="col">
+                <input name="prod_name" id="prod_name" list="products" placeholder="Product Name" class="form-control" autocomplete="off" required autofocus>
+                <datalist id="products">
+                {% for product in products %}
+                <option value="{{ product[1] }}" id="prod_{{ product[0] }}">
+                {% endfor %}
+                </datalist>
+            </div>
+            <div class="col">
+                <input name="from_loc" id="from_loc" list="locations_to_from" placeholder="From Warehouse" class="form-control" autocomplete="off">
+            </div>
+            <div class="col">
+                <input name="to_loc" id="to_loc" list="locations_to_from" placeholder="To Warehouse" class="form-control" autocomplete="off">
+            </div>
+            <div class="col slide-container">
+                <input name="quantity" type="range" min="0" value="" class="slider" id="slider_range" required title="Product Range">
+                <p>Value: <span id="show_selected"></span>&nbsp;&nbsp;&nbsp;<span id="max_limit" class="font-weight-light"></span></p>
+            </div>
+            <div class="col">
+                <input type="submit" id="submit" class="btn btn-info btn-group-toggle" value="submit" /><br>
+            </div>
+            <datalist id="locations_to_from">
+                {% for location in locations %}
+                <option value="{{ location[1] }}" id="loc_{{ location[0] }}">
+                {% endfor %}
+            </datalist>
+        </div>
+    </form>
+
+    <br>
+    <hr><br>
+
+    <h3 align="center" class="font-weight-light">Logistics History</h3>
+    {% if not logistics %}
+    <h3 align="center" class="font-weight-light">Data not available yet</h3>
+    {% else %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Transaction ID</th>
+                <th scope="col">Product ID</th>
+                <th scope="col">From Location</th>
+                <th scope="col">To Location</th>
+                <th scope="col">Quantity</th>
+                <th scope="col">UTC Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for log in logistics %}
+        <tr>{% for col in log %}<td>{{ col or "-" }}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+</div>
+
+<script>
+    // this contains unallocated products
+    const products = Object.fromEntries({{ products| tojson }}.map(s => s.slice(1)));
+    // this contains all allocated products in form --> product: location: quantity
+    let summary = JSON.parse({{ allocated| tojson }});
+
+    let slider = document.getElementById("slider_range");
+    let output = document.getElementById("show_selected");
+    let max_limit = document.getElementById("max_limit");
+
+    let prod_name = document.getElementById("prod_name");
+    let to_loc = document.getElementById("to_loc");
+    let from_loc = document.getElementById("from_loc");
+
+    to_loc.onchange = function () {
+        if (!from_loc.value && prod_name.value) {
+            let max_val = products[(prod_name.value).toString()];
+            slider.setAttribute("max", max_val.toString());
+            document.getElementById("submit").disabled = (max_val === 0);
+
+            max_limit.innerText = `Max: ${max_val}`;
+        }
+
+        output.innerHTML = slider.value;
+    };
+    from_loc.onchange = function () {
+        let max_val = summary[(prod_name.value).toString()][(from_loc.value).toString()];
+        slider.setAttribute("max", max_val.toString());
+        document.getElementById("submit").disabled = (max_val === 0);
+
+        max_limit.innerText = `Max: ${max_val}`;
+        output.innerHTML = slider.value;
+    };
+    slider.oninput = function () {
+        output.innerHTML = this.value;
+        let curr_val = parseInt(this.value);
+        let max_val = from_loc.value ? parseInt(summary[(prod_name.value).toString()][(from_loc.value).toString()].toString()) : parseInt(products[(prod_name.value).toString()].toString());
+        document.getElementById("submit").disabled = (curr_val > max_val);
+    };
+
+    output.innerHTML = slider.value;
+</script>
+{% endblock %}

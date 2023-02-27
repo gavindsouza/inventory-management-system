@@ -102,3 +102,6 @@ ENV/
 # others
 *.pickle
 .directory
+
+# Inventory Management System
+inventory.sqlite
