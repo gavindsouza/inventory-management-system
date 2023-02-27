@@ -26,10 +26,7 @@ if os.environ.get("FLASK_DEBUG") == "1":
 else:
     DATABASE_NAME = os.environ.get("DATABASE_NAME") or _DATABASE_PATH.resolve()
 
-print(f"Using database: {DATABASE_NAME}")
 
-
-@app.before_first_request
 def init_database():
     PRODUCTS = (
         "products("
@@ -60,6 +57,9 @@ def init_database():
             "AFTER INSERT ON products FOR EACH ROW WHEN NEW.unallocated_quantity IS NULL "
             "BEGIN UPDATE products SET unallocated_quantity = NEW.prod_quantity WHERE rowid = NEW.rowid; END"
         )
+
+
+app.init_db = init_database
 
 
 @app.route("/", methods=["GET"])
@@ -327,3 +327,7 @@ def edit():
 
             case _:
                 return redirect(VIEWS["Summary"])
+
+
+with app.app_context():
+    app.init_db()
