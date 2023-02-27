@@ -4,20 +4,21 @@ import sqlite3
 from collections import defaultdict
 
 # imports - third party imports
-from flask import Flask, redirect
-from flask import render_template as render
-from flask import request, url_for
+from flask import Flask, redirect, render_template, request
 
 DATABASE_NAME = "inventory.sqlite"
 VIEWS = {
-    "index": "/",
-    "product": "/product",
-    "location": "/location",
-    "movement": "/movement",
+    "Summary": "/",
+    "Stock": "/product",
+    "Warehouses": "/location",
+    "Logistics": "/movement",
 }
 EMPTY_SYMBOLS = {"", " ", None}
 
 app = Flask(__name__)
+app.config.update(
+    TEMPLATES_AUTO_RELOAD=True,
+)
 
 
 @app.before_first_request
@@ -62,7 +63,7 @@ def summary():
             "SELECT prod_name, unallocated_quantity, prod_quantity FROM products"
         ).fetchall()
 
-    return render(
+    return render_template(
         "index.jinja",
         link=VIEWS,
         title="Summary",
@@ -84,15 +85,15 @@ def product():
                     "INSERT INTO products (prod_name, prod_quantity) VALUES (?, ?)",
                     (prod_name, quantity),
                 )
-                return redirect(url_for("product"))
+                return redirect(VIEWS["Stock"])
 
         products = conn.execute("SELECT * FROM products").fetchall()
 
-    return render(
+    return render_template(
         "product.jinja",
         link=VIEWS,
         products=products,
-        title="Products Log",
+        title="Stock",
     )
 
 
@@ -104,15 +105,15 @@ def location():
 
             if warehouse_name not in EMPTY_SYMBOLS:
                 conn.execute("INSERT INTO location (loc_name) VALUES (?)", (warehouse_name,))
-                return redirect(url_for("location"))
+                return redirect(VIEWS["Warehouses"])
 
         warehouse_data = conn.execute("SELECT * FROM location").fetchall()
 
-    return render(
+    return render_template(
         "location.jinja",
         link=VIEWS,
         warehouses=warehouse_data,
-        title="Warehouse Locations",
+        title="Warehouses",
     )
 
 
@@ -215,21 +216,21 @@ def movement():
                 locations = conn.execute("SELECT loc_id, loc_name FROM location").fetchall()
                 warehouse_summary = get_warehouse_data(conn, products, locations)
                 item_location_qty_map = get_warehouse_map(warehouse_summary)
-                return render(
+                return render_template(
                     "movement.jinja",
-                    title="ProductMovement",
+                    title="Logistics",
                     link=VIEWS,
                     products=products,
                     locations=locations,
                     allocated=item_location_qty_map,
-                    logs=logistics_data,
-                    database=warehouse_summary,
+                    logistics=logistics_data,
+                    summary=warehouse_summary,
                 )
 
         case "POST":
             with sqlite3.connect(DATABASE_NAME) as conn:
                 update_warehouse_data(conn)
-                return redirect(url_for("movement"))
+                return redirect(VIEWS["Logistics"])
 
 
 @app.route("/delete")
@@ -242,7 +243,7 @@ def delete():
                 product_id = request.args.get("prod_id")
                 if product_id:
                     conn.execute("DELETE FROM products WHERE prod_id = ?", product_id)
-                return redirect(url_for("product"))
+                return redirect(VIEWS["Stock"])
 
             case "location":
                 location_id = request.args.get("loc_id")
@@ -271,18 +272,15 @@ def delete():
                             (displaced_qty[products_], products_),
                         )
                     conn.execute("DELETE FROM location WHERE loc_id = ?", location_id)
-                return redirect(url_for("location"))
+                return redirect(VIEWS["Warehouses"])
 
             case _:
-                return redirect(url_for("index"))
+                return redirect(VIEWS["Summary"])
 
 
-@app.route("/edit", methods=["POST", "GET"])
+@app.route("/edit", methods=["POST"])
 def edit():
     edit_record_type = request.args.get("type")
-
-    if request.method != "POST":
-        return render(url_for(edit_record_type))
 
     with sqlite3.connect(DATABASE_NAME) as conn:
         match edit_record_type:
@@ -292,7 +290,7 @@ def edit():
                     conn.execute(
                         "UPDATE location SET loc_name = ? WHERE loc_id = ?", (loc_name, loc_id)
                     )
-                return redirect(url_for("location"))
+                return redirect(VIEWS["Warehouses"])
 
             case "product":
                 prod_id, prod_name, prod_quantity = (
@@ -315,7 +313,7 @@ def edit():
                         (prod_quantity, prod_quantity, old_prod_quantity, prod_id),
                     )
 
-                return redirect(url_for("product"))
+                return redirect(VIEWS["Stock"])
 
             case _:
-                return redirect(url_for(edit_record_type))
+                return redirect(VIEWS["Summary"])
