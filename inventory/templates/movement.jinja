@@ -1,4 +1,4 @@
-{% extends 'base-template.html' %}
+{% extends 'base-template.jinja' %}
 {% block content %}
     <div class="container">
         <h3 align="center" class="font-weight-light">Summary</h3>
@@ -14,7 +14,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Showing current state (just as index.html -->
+                <!-- Showing current state (just as index.jinja -->
                     {% for data in database %}
                         {% if data[2] != 0 %}
                         <tr>

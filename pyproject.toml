@@ -4,7 +4,7 @@ authors = [
     { name = "Gavin D'souza", email = "gavin18d@gmail.com"}
 ]
 description = "Basic Inventory Management System powered by Flask"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [

@@ -1,394 +1,341 @@
 # imports - standard imports
-import os
 import json
 import sqlite3
+from collections import defaultdict
+from pathlib import Path
 
 # imports - third party imports
-from flask import Flask, url_for, request, redirect
+from flask import Flask, redirect
 from flask import render_template as render
+from flask import request, url_for
 
-# global constants
-DATABASE_NAME = 'inventory.sqlite'
+DATABASE_NAME = "inventory.sqlite"
+VIEWS = {
+    "index": "/",
+    "product": "/product",
+    "location": "/location",
+    "movement": "/movement",
+}
+EMPTY_SYMBOLS = {"", " ", None}
 
-# setting up Flask instance
 app = Flask(__name__)
 app.config.from_mapping(
-    SECRET_KEY='dev',
-    DATABASE=os.path.join(app.instance_path, 'database', DATABASE_NAME),
+    SECRET_KEY="dev",
+    DATABASE=Path(app.instance_path) / "database" / DATABASE_NAME,
 )
 
-# listing views
-link = {x: x for x in ["location", "product", "movement"]}
-link["index"] = '/'
 
-
+@app.before_first_request
 def init_database():
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
+    PRODUCTS = (
+        "products("
+        "prod_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "prod_name TEXT UNIQUE NOT NULL, "
+        "prod_quantity INTEGER NOT NULL, "
+        "unallocated_quantity INTEGER)"
+    )
+    LOCATIONS = "location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT, loc_name TEXT UNIQUE NOT NULL)"
+    LOGISTICS = (
+        "logistics("
+        "trans_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "prod_id INTEGER NOT NULL, "
+        "from_loc_id INTEGER NULL, "
+        "to_loc_id INTEGER NULL, "
+        "prod_quantity INTEGER NOT NULL, "
+        "trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+        "FOREIGN KEY(prod_id) REFERENCES products(prod_id), "
+        "FOREIGN KEY(from_loc_id) REFERENCES location(loc_id), "
+        "FOREIGN KEY(to_loc_id) REFERENCES location(loc_id))"
+    )
 
-    # initialize page content
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS products(prod_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    prod_name TEXT UNIQUE NOT NULL,
-                    prod_quantity INTEGER NOT NULL,
-                    unallocated_quantity INTEGER);
-    """)
-    cursor.execute("""
-    CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty
-                    AFTER INSERT ON products
-                    FOR EACH ROW
-                    WHEN NEW.unallocated_quantity IS NULL
-                    BEGIN 
-                        UPDATE products SET unallocated_quantity  = NEW.prod_quantity WHERE rowid = NEW.rowid;
-                    END;
-
-    """)
-
-    # initialize page content
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS location(loc_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                 loc_name TEXT UNIQUE NOT NULL);
-    """)
-
-    # initialize page content
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS logistics(trans_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                prod_id INTEGER NOT NULL,
-                                from_loc_id INTEGER NULL,
-                                to_loc_id INTEGER NULL,
-                                prod_quantity INTEGER NOT NULL,
-                                trans_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY(prod_id) REFERENCES products(prod_id),
-                                FOREIGN KEY(from_loc_id) REFERENCES location(loc_id),
-                                FOREIGN KEY(to_loc_id) REFERENCES location(loc_id));
-    """)
-    db.commit()
+    with sqlite3.connect(DATABASE_NAME) as conn:
+        for table_definition in [PRODUCTS, LOCATIONS, LOGISTICS]:
+            conn.execute(f"CREATE TABLE IF NOT EXISTS {table_definition}")
+        conn.execute(
+            "CREATE TRIGGER IF NOT EXISTS default_prod_qty_to_unalloc_qty "
+            "AFTER INSERT ON products FOR EACH ROW WHEN NEW.unallocated_quantity IS NULL "
+            "BEGIN UPDATE products SET unallocated_quantity = NEW.prod_quantity WHERE rowid = NEW.rowid; END"
+        )
 
 
-@app.route('/')
+@app.route("/", methods=["GET"])
 def summary():
-    init_database()
-    msg = None
-    q_data, warehouse, products = None, None, None
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
-    try:
-        cursor.execute("SELECT * FROM location")  # <---------------------------------FIX THIS
-        warehouse = cursor.fetchall()
-        cursor.execute("SELECT * FROM products")
-        products = cursor.fetchall()
-        cursor.execute("""
-        SELECT prod_name, unallocated_quantity, prod_quantity FROM products
-        """)
-        q_data = cursor.fetchall()
-    except sqlite3.Error as e:
-        msg = f"An error occurred: {e.args[0]}"
-    if msg:
-        print(msg)
+    with sqlite3.connect(DATABASE_NAME) as conn:
+        warehouse = conn.execute("SELECT * FROM location").fetchall()
+        products = conn.execute("SELECT * FROM products").fetchall()
+        q_data = conn.execute(
+            "SELECT prod_name, unallocated_quantity, prod_quantity FROM products"
+        ).fetchall()
 
-    return render('index.html', link=link, title="Summary", warehouses=warehouse, products=products, database=q_data)
+    return render(
+        "index.jinja",
+        link=VIEWS,
+        title="Summary",
+        warehouses=warehouse,
+        products=products,
+        summary=q_data,
+    )
 
 
-@app.route('/product', methods=['POST', 'GET'])
+@app.route("/product", methods=["POST", "GET"])
 def product():
-    init_database()
-    msg = None
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
+    with sqlite3.connect(DATABASE_NAME) as conn:
+        if request.method == "POST":
+            prod_name, quantity = request.form["prod_name"], request.form["prod_quantity"]
+            transaction_allowed = prod_name not in EMPTY_SYMBOLS and quantity not in EMPTY_SYMBOLS
 
-    cursor.execute("SELECT * FROM products")
-    products = cursor.fetchall()
+            if transaction_allowed:
+                conn.execute(
+                    "INSERT INTO products (prod_name, prod_quantity) VALUES (?, ?)",
+                    (prod_name, quantity),
+                )
+                conn.commit()
+                return redirect(url_for("product"))
 
-    if request.method == 'POST':
-        prod_name = request.form['prod_name']
-        quantity = request.form['prod_quantity']
+        products = conn.execute("SELECT * FROM products").fetchall()
 
-        transaction_allowed = False
-        if prod_name not in ['', ' ', None]:
-            if quantity not in ['', ' ', None]:
-                transaction_allowed = True
-
-        if transaction_allowed:
-            try:
-                cursor.execute("INSERT INTO products (prod_name, prod_quantity) VALUES (?, ?)", (prod_name, quantity))
-                db.commit()
-            except sqlite3.Error as e:
-                msg = f"An error occurred: {e.args[0]}"
-            else:
-                msg = f"{prod_name} added successfully"
-
-            if msg:
-                print(msg)
-
-            return redirect(url_for('product'))
-
-    return render('product.html',
-                  link=link, products=products, transaction_message=msg,
-                  title="Products Log")
+    return render(
+        "product.jinja",
+        link=VIEWS,
+        products=products,
+        title="Products Log",
+    )
 
 
-@app.route('/location', methods=['POST', 'GET'])
+@app.route("/location", methods=["POST", "GET"])
 def location():
-    init_database()
-    msg = None
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
+    with sqlite3.connect(DATABASE_NAME) as conn:
+        if request.method == "POST":
+            warehouse_name = request.form["warehouse_name"]
 
-    cursor.execute("SELECT * FROM location")
-    warehouse_data = cursor.fetchall()
+            if warehouse_name not in EMPTY_SYMBOLS:
+                conn.execute("INSERT INTO location (loc_name) VALUES (?)", (warehouse_name,))
+                conn.commit()
+                return redirect(url_for("location"))
 
-    if request.method == 'POST':
-        warehouse_name = request.form['warehouse_name']
+        warehouse_data = conn.execute("SELECT * FROM location").fetchall()
 
-        transaction_allowed = False
-        if warehouse_name not in ['', ' ', None]:
-            transaction_allowed = True
-
-        if transaction_allowed:
-            try:
-                cursor.execute("INSERT INTO location (loc_name) VALUES (?)", (warehouse_name,))
-                db.commit()
-            except sqlite3.Error as e:
-                msg = f"An error occurred: {e.args[0]}"
-            else:
-                msg = f"{warehouse_name} added successfully"
-
-            if msg:
-                print(msg)
-
-            return redirect(url_for('location'))
-
-    return render('location.html',
-                  link=link, warehouses=warehouse_data, transaction_message=msg,
-                  title="Warehouse Locations")
+    return render(
+        "location.jinja",
+        link=VIEWS,
+        warehouses=warehouse_data,
+        title="Warehouse Locations",
+    )
 
 
-@app.route('/movement', methods=['POST', 'GET'])
-def movement():
-    init_database()
-    msg = None
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
-
-    cursor.execute("SELECT * FROM logistics")
-    logistics_data = cursor.fetchall()
-
-    # add suggestive content for page
-    cursor.execute("SELECT prod_id, prod_name, unallocated_quantity FROM products")
-    products = cursor.fetchall()
-
-    cursor.execute("SELECT loc_id, loc_name FROM location")
-    locations = cursor.fetchall()
-
+def get_warehouse_data(
+    conn: sqlite3.Connection, products: list[tuple], locations: list[tuple]
+) -> list[tuple]:
     log_summary = []
     for p_id in [x[0] for x in products]:
-        cursor.execute("SELECT prod_name FROM products WHERE prod_id = ?", (p_id, ))
-        temp_prod_name = cursor.fetchone()
+        temp_prod_name = conn.execute(
+            "SELECT prod_name FROM products WHERE prod_id = ?", (p_id,)
+        ).fetchone()
 
         for l_id in [x[0] for x in locations]:
-            cursor.execute("SELECT loc_name FROM location WHERE loc_id = ?", (l_id,))
-            temp_loc_name = cursor.fetchone()
+            temp_loc_name = conn.execute(
+                "SELECT loc_name FROM location WHERE loc_id = ?", (l_id,)
+            ).fetchone()
+            sum_to_loc = conn.execute(
+                "SELECT SUM(log.prod_quantity) FROM logistics log WHERE log.prod_id = ? AND log.to_loc_id = ?",
+                (p_id, l_id),
+            ).fetchone()
+            sum_from_loc = conn.execute(
+                "SELECT SUM(log.prod_quantity) FROM logistics log WHERE log.prod_id = ? AND log.from_loc_id = ?",
+                (p_id, l_id),
+            ).fetchone()
+            log_summary += [
+                temp_prod_name + temp_loc_name + ((sum_to_loc[0] or 0) - (sum_from_loc[0] or 0),)
+            ]
 
-            cursor.execute("""
-            SELECT SUM(log.prod_quantity)
-            FROM logistics log
-            WHERE log.prod_id = ? AND log.to_loc_id = ?
-            """, (p_id, l_id))
-            sum_to_loc = cursor.fetchone()
+    return log_summary
 
-            cursor.execute("""
-            SELECT SUM(log.prod_quantity)
-            FROM logistics log
-            WHERE log.prod_id = ? AND log.from_loc_id = ?
-            """, (p_id, l_id))
-            sum_from_loc = cursor.fetchone()
 
-            if sum_from_loc[0] is None:
-                sum_from_loc = (0,)
-            if sum_to_loc[0] is None:
-                sum_to_loc = (0,)
+def update_warehouse_data(conn: sqlite3.Connection):
+    # transaction times are stored in UTC
+    prod_name, from_loc, to_loc, quantity = (
+        request.form["prod_name"],
+        request.form["from_loc"],
+        request.form["to_loc"],
+        request.form["quantity"],
+    )
 
-            log_summary += [(temp_prod_name + temp_loc_name + (sum_to_loc[0] - sum_from_loc[0],))]
+    # if no 'from loc' is given, that means the product is being shipped to a warehouse (init condition)
+    if from_loc in EMPTY_SYMBOLS:
+        conn.execute(
+            """
+            INSERT INTO logistics (prod_id, to_loc_id, prod_quantity)
+            SELECT products.prod_id, location.loc_id, ?
+            FROM products, location
+            WHERE products.prod_name = ? AND location.loc_name = ?
+        """,
+            (quantity, prod_name, to_loc),
+        )
+        conn.execute(
+            "UPDATE products SET unallocated_quantity = unallocated_quantity - ? WHERE prod_name = ?",
+            (quantity, prod_name),
+        )
+        conn.commit()
 
-    # CHECK if reductions are calculated as well!
+    # To Location wasn't specified, will be unallocated
+    elif to_loc in EMPTY_SYMBOLS:
+        conn.execute(
+            """
+            INSERT INTO logistics (prod_id, from_loc_id, prod_quantity)
+            SELECT products.prod_id, location.loc_id, ? FROM products, location WHERE products.prod_name = ? AND location.loc_name = ?
+            """,
+            (quantity, prod_name, from_loc),
+        )
+        conn.execute(
+            "UPDATE products SET unallocated_quantity = unallocated_quantity + ? WHERE prod_name = ?",
+            (quantity, prod_name),
+        )
+        conn.commit()
+
+    # if 'from loc' and 'to_loc' given the product is being shipped between warehouses
+    else:
+        conn.execute(
+            "INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity) "
+            "SELECT "
+            "(SELECT prod_id FROM products WHERE prod_name = ?) as prod_id, "
+            "(SELECT loc_id FROM location WHERE loc_name = ?) as from_loc_id, "
+            "(SELECT loc_id FROM location WHERE loc_name = ?) as to_loc_id, "
+            "(SELECT ? as prod_quantity) as prod_quantity",
+            (prod_name, from_loc, to_loc, quantity),
+        )
+        conn.commit()
+
+
+def get_warehouse_map(log_summary: list):
     # summary data --> in format:
     # {'Asus Zenfone 2': {'Mahalakshmi': 50, 'Gorhe': 50},
     # 'Prada watch': {'Malad': 50, 'Mahalakshmi': 115}, 'Apple iPhone': {'Airoli': 75}}
-    alloc_json = {}
+    item_location_qty_map = defaultdict(dict)
     for row in log_summary:
-        try:
-            if row[1] in alloc_json[row[0]].keys():
-                alloc_json[row[0]][row[1]] += row[2]
-            else:
-                alloc_json[row[0]][row[1]] = row[2]
-        except (KeyError, TypeError):
-            alloc_json[row[0]] = {}
-            alloc_json[row[0]][row[1]] = row[2]
-    alloc_json = json.dumps(alloc_json)
-
-    if request.method == 'POST':
-        # transaction times are stored in UTC
-        prod_name = request.form['prod_name']
-        from_loc = request.form['from_loc']
-        to_loc = request.form['to_loc']
-        quantity = request.form['quantity']
-
-        # if no 'from loc' is given, that means the product is being shipped to a warehouse (init condition)
-        if from_loc in [None, '', ' ']:
-            try:
-                cursor.execute("""
-                    INSERT INTO logistics (prod_id, to_loc_id, prod_quantity) 
-                    SELECT products.prod_id, location.loc_id, ? 
-                    FROM products, location 
-                    WHERE products.prod_name == ? AND location.loc_name == ?
-                """, (quantity, prod_name, to_loc))
-
-                # IMPORTANT to maintain consistency
-                cursor.execute("""
-                UPDATE products 
-                SET unallocated_quantity = unallocated_quantity - ? 
-                WHERE prod_name == ?
-                """, (quantity, prod_name))
-                db.commit()
-
-            except sqlite3.Error as e:
-                msg = f"An error occurred: {e.args[0]}"
-            else:
-                msg = "Transaction added successfully"
-
-        elif to_loc in [None, '', ' ']:
-            print("To Location wasn't specified, will be unallocated")
-            try:
-                cursor.execute("""
-                INSERT INTO logistics (prod_id, from_loc_id, prod_quantity) 
-                SELECT products.prod_id, location.loc_id, ? 
-                FROM products, location 
-                WHERE products.prod_name == ? AND location.loc_name == ?
-                """, (quantity, prod_name, from_loc))
-
-                # IMPORTANT to maintain consistency
-                cursor.execute("""
-                UPDATE products 
-                SET unallocated_quantity = unallocated_quantity + ? 
-                WHERE prod_name == ?
-                """, (quantity, prod_name))
-                db.commit()
-
-            except sqlite3.Error as e:
-                msg = f"An error occurred: {e.args[0]}"
-            else:
-                msg = "Transaction added successfully"
-
-        # if 'from loc' and 'to_loc' given the product is being shipped between warehouses
+        if row[1] in item_location_qty_map[row[0]]:
+            item_location_qty_map[row[0]][row[1]] += row[2]
         else:
-            try:
-                cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (from_loc,))
-                from_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
-
-                cursor.execute("SELECT loc_id FROM location WHERE loc_name == ?", (to_loc,))
-                to_loc = ''.join([str(x[0]) for x in cursor.fetchall()])
-
-                cursor.execute("SELECT prod_id FROM products WHERE prod_name == ?", (prod_name,))
-                prod_id = ''.join([str(x[0]) for x in cursor.fetchall()])
-
-                cursor.execute("""
-                INSERT INTO logistics (prod_id, from_loc_id, to_loc_id, prod_quantity)
-                VALUES (?, ?, ?, ?)
-                """, (prod_id, from_loc, to_loc, quantity))
-                db.commit()
-
-            except sqlite3.Error as e:
-                msg = f"An error occurred: {e.args[0]}"
-            else:
-                msg = "Transaction added successfully"
-
-        # print a transaction message if exists!
-        if msg:
-            print(msg)
-            return redirect(url_for('movement'))
-
-    return render('movement.html', title="ProductMovement",
-                  link=link, trans_message=msg,
-                  products=products, locations=locations, allocated=alloc_json,
-                  logs=logistics_data, database=log_summary)
+            item_location_qty_map[row[0]][row[1]] = row[2]
+    return json.dumps(item_location_qty_map)
 
 
-@app.route('/delete')
+@app.route("/movement", methods=["POST", "GET"])
+def movement():
+    match request.method:
+        case "GET":
+            with sqlite3.connect(DATABASE_NAME) as conn:
+                logistics_data = conn.execute("SELECT * FROM logistics").fetchall()
+                products = conn.execute(
+                    "SELECT prod_id, prod_name, unallocated_quantity FROM products"
+                ).fetchall()
+                locations = conn.execute("SELECT loc_id, loc_name FROM location").fetchall()
+                warehouse_summary = get_warehouse_data(conn, products, locations)
+                item_location_qty_map = get_warehouse_map(warehouse_summary)
+                return render(
+                    "movement.jinja",
+                    title="ProductMovement",
+                    link=VIEWS,
+                    products=products,
+                    locations=locations,
+                    allocated=item_location_qty_map,
+                    logs=logistics_data,
+                    database=warehouse_summary,
+                )
+
+        case "POST":
+            with sqlite3.connect(DATABASE_NAME) as conn:
+                update_warehouse_data(conn)
+                return redirect(url_for("movement"))
+
+
+@app.route("/delete")
 def delete():
-    type_ = request.args.get('type')
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
+    delete_record_type = request.args.get("type")
 
-    if type_ == 'location':
-        id_ = request.args.get('loc_id')
+    with sqlite3.connect(DATABASE_NAME) as conn:
+        match delete_record_type:
+            case "product":
+                product_id = request.args.get("prod_id")
+                if product_id:
+                    conn.execute("DELETE FROM products WHERE prod_id = ?", product_id)
+                    conn.commit()
+                return redirect(url_for("product"))
 
-        cursor.execute("SELECT prod_id, SUM(prod_quantity) FROM logistics WHERE to_loc_id = ? GROUP BY prod_id", (id_,))
-        in_place = cursor.fetchall()
+            case "location":
+                location_id = request.args.get("loc_id")
+                if location_id:
+                    in_place = dict(
+                        conn.execute(
+                            "SELECT prod_id, SUM(prod_quantity) FROM logistics WHERE to_loc_id = ? GROUP BY prod_id",
+                            (location_id,),
+                        ).fetchall()
+                    )
+                    out_place = dict(
+                        conn.execute(
+                            "SELECT prod_id, SUM(prod_quantity) FROM logistics WHERE from_loc_id = ? GROUP BY prod_id",
+                            (location_id,),
+                        ).fetchall()
+                    )
 
-        cursor.execute("SELECT prod_id, SUM(prod_quantity) FROM logistics WHERE from_loc_id = ? GROUP BY prod_id", (id_,))
-        out_place = cursor.fetchall()
+                    displaced_qty = in_place.copy()
+                    for x in in_place:
+                        if x in out_place:
+                            displaced_qty[x] = displaced_qty[x] - out_place[x]
 
-        # converting list of tuples to dict
-        in_place = dict(in_place)
-        out_place = dict(out_place)
+                    for products_ in displaced_qty:
+                        conn.execute(
+                            "UPDATE products SET unallocated_quantity = unallocated_quantity + ? WHERE prod_id = ?",
+                            (displaced_qty[products_], products_),
+                        )
+                    conn.execute("DELETE FROM location WHERE loc_id = ?", location_id)
+                    conn.commit()
+                return redirect(url_for("location"))
 
-        # print(in_place, out_place)
-        all_place = {}
-        for x in in_place.keys():
-            if x in out_place.keys():
-                all_place[x] = in_place[x] - out_place[x]
-            else:
-                all_place[x] = in_place[x]
-        # print(all_place)
-
-        for products_ in all_place.keys():
-            cursor.execute("""
-            UPDATE products SET unallocated_quantity = unallocated_quantity + ? WHERE prod_id = ?
-            """, (all_place[products_], products_))
-
-        cursor.execute("DELETE FROM location WHERE loc_id == ?", str(id_))
-        db.commit()
-
-        return redirect(url_for('location'))
-
-    elif type_ == 'product':
-        id_ = request.args.get('prod_id')
-        cursor.execute("DELETE FROM products WHERE prod_id == ?", str(id_))
-        db.commit()
-
-        return redirect(url_for('product'))
+            case _:
+                return redirect(url_for("index"))
 
 
-@app.route('/edit', methods=['POST', 'GET'])
+@app.route("/edit", methods=["POST", "GET"])
 def edit():
-    type_ = request.args.get('type')
-    db = sqlite3.connect(DATABASE_NAME)
-    cursor = db.cursor()
+    edit_record_type = request.args.get("type")
 
-    if type_ == 'location' and request.method == 'POST':
-        loc_id = request.form['loc_id']
-        loc_name = request.form['loc_name']
+    if request.method != "POST":
+        return render(url_for(edit_record_type))
 
-        if loc_name:
-            cursor.execute("UPDATE location SET loc_name = ? WHERE loc_id == ?", (loc_name, str(loc_id)))
-            db.commit()
+    with sqlite3.connect(DATABASE_NAME) as conn:
+        match edit_record_type:
+            case "location":
+                loc_id, loc_name = request.form["loc_id"], request.form["loc_name"]
+                if loc_name:
+                    conn.execute(
+                        "UPDATE location SET loc_name = ? WHERE loc_id = ?", (loc_name, loc_id)
+                    )
+                    conn.commit()
+                return redirect(url_for("location"))
 
-        return redirect(url_for('location'))
+            case "product":
+                prod_id, prod_name, prod_quantity = (
+                    request.form["prod_id"],
+                    request.form["prod_name"],
+                    request.form["prod_quantity"],
+                )
 
-    elif type_ == 'product' and request.method == 'POST':
-        prod_id = request.form['prod_id']
-        prod_name = request.form['prod_name']
-        prod_quantity = request.form['prod_quantity']
+                if prod_name:
+                    conn.execute(
+                        "UPDATE products SET prod_name = ? WHERE prod_id = ?",
+                        (prod_name, prod_id),
+                    )
+                if prod_quantity:
+                    old_prod_quantity = conn.execute(
+                        "SELECT prod_quantity FROM products WHERE prod_id = ?", (prod_id,)
+                    ).fetchone()[0]
+                    conn.execute(
+                        "UPDATE products SET prod_quantity = ?, unallocated_quantity =  unallocated_quantity + ? - ? WHERE prod_id = ?",
+                        (prod_quantity, prod_quantity, old_prod_quantity, prod_id),
+                    )
+                conn.commit()
 
-        if prod_name:
-            cursor.execute("UPDATE products SET prod_name = ? WHERE prod_id == ?", (prod_name, str(prod_id)))
-        if prod_quantity:
-            cursor.execute("SELECT prod_quantity FROM products WHERE prod_id = ?", (prod_id,))
-            old_prod_quantity = cursor.fetchone()[0]
-            cursor.execute("UPDATE products SET prod_quantity = ?, unallocated_quantity =  unallocated_quantity + ? - ?"
-                           "WHERE prod_id == ?", (prod_quantity, prod_quantity, old_prod_quantity, str(prod_id)))
-        db.commit()
+                return redirect(url_for("product"))
 
-        return redirect(url_for('product'))
-
-    return render(url_for(type_))
+            case _:
+                return redirect(url_for(edit_record_type))

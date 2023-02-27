@@ -1,4 +1,4 @@
-{% extends 'base-template.html' %}
+{% extends 'base-template.jinja' %}
 {% block content %}
     <div class="container">
     <h3 align="center">Description</h3>
@@ -61,7 +61,7 @@
     <div class="container" style="float: contour;" align="center">
     <h3 align="center">Summary</h3>
         <div class="form-horizontal" title="Summary">
-        {% if database == None or database|length == 0 %}
+        {% if summary|length == 0 %}
             <h3 align="center" class="font-weight-light">Summary not available yet</h3>
         {% else %}
             <!-- Summary needed -->
@@ -75,7 +75,7 @@
                         </tr>
                     </thead>
                     <thead>
-                        {% for data in database %}
+                        {% for data in summary %}
                             <tr>
                                 <td>{{ data[0] }}</td>
                                 <td>{{ data[1] }}</td>
