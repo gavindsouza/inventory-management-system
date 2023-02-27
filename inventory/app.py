@@ -2,7 +2,6 @@
 import json
 import sqlite3
 from collections import defaultdict
-from pathlib import Path
 
 # imports - third party imports
 from flask import Flask, redirect
@@ -19,10 +18,6 @@ VIEWS = {
 EMPTY_SYMBOLS = {"", " ", None}
 
 app = Flask(__name__)
-app.config.from_mapping(
-    SECRET_KEY="dev",
-    DATABASE=Path(app.instance_path) / "database" / DATABASE_NAME,
-)
 
 
 @app.before_first_request
@@ -89,7 +84,6 @@ def product():
                     "INSERT INTO products (prod_name, prod_quantity) VALUES (?, ?)",
                     (prod_name, quantity),
                 )
-                conn.commit()
                 return redirect(url_for("product"))
 
         products = conn.execute("SELECT * FROM products").fetchall()
@@ -110,7 +104,6 @@ def location():
 
             if warehouse_name not in EMPTY_SYMBOLS:
                 conn.execute("INSERT INTO location (loc_name) VALUES (?)", (warehouse_name,))
-                conn.commit()
                 return redirect(url_for("location"))
 
         warehouse_data = conn.execute("SELECT * FROM location").fetchall()
@@ -152,7 +145,7 @@ def get_warehouse_data(
 
 
 def update_warehouse_data(conn: sqlite3.Connection):
-    # transaction times are stored in UTC
+    update_unallocated_quantity = False
     prod_name, from_loc, to_loc, quantity = (
         request.form["prod_name"],
         request.form["from_loc"],
@@ -162,35 +155,15 @@ def update_warehouse_data(conn: sqlite3.Connection):
 
     # if no 'from loc' is given, that means the product is being shipped to a warehouse (init condition)
     if from_loc in EMPTY_SYMBOLS:
-        conn.execute(
-            """
-            INSERT INTO logistics (prod_id, to_loc_id, prod_quantity)
-            SELECT products.prod_id, location.loc_id, ?
-            FROM products, location
-            WHERE products.prod_name = ? AND location.loc_name = ?
-        """,
-            (quantity, prod_name, to_loc),
-        )
-        conn.execute(
-            "UPDATE products SET unallocated_quantity = unallocated_quantity - ? WHERE prod_name = ?",
-            (quantity, prod_name),
-        )
-        conn.commit()
+        column_name = "to_loc_id"
+        operation = "-"
+        update_unallocated_quantity = True
 
     # To Location wasn't specified, will be unallocated
     elif to_loc in EMPTY_SYMBOLS:
-        conn.execute(
-            """
-            INSERT INTO logistics (prod_id, from_loc_id, prod_quantity)
-            SELECT products.prod_id, location.loc_id, ? FROM products, location WHERE products.prod_name = ? AND location.loc_name = ?
-            """,
-            (quantity, prod_name, from_loc),
-        )
-        conn.execute(
-            "UPDATE products SET unallocated_quantity = unallocated_quantity + ? WHERE prod_name = ?",
-            (quantity, prod_name),
-        )
-        conn.commit()
+        column_name = "from_loc_id"
+        operation = "+"
+        update_unallocated_quantity = True
 
     # if 'from loc' and 'to_loc' given the product is being shipped between warehouses
     else:
@@ -203,7 +176,18 @@ def update_warehouse_data(conn: sqlite3.Connection):
             "(SELECT ? as prod_quantity) as prod_quantity",
             (prod_name, from_loc, to_loc, quantity),
         )
-        conn.commit()
+
+    if update_unallocated_quantity:
+        conn.execute(
+            f"INSERT INTO logistics (prod_id, {column_name}, prod_quantity) "
+            "SELECT products.prod_id, location.loc_id, ? FROM products, location "
+            "WHERE products.prod_name = ? AND location.loc_name = ?",
+            (quantity, prod_name, to_loc),
+        )
+        conn.execute(
+            f"UPDATE products SET unallocated_quantity = unallocated_quantity {operation} ? WHERE prod_name = ?",
+            (quantity, prod_name),
+        )
 
 
 def get_warehouse_map(log_summary: list):
@@ -258,7 +242,6 @@ def delete():
                 product_id = request.args.get("prod_id")
                 if product_id:
                     conn.execute("DELETE FROM products WHERE prod_id = ?", product_id)
-                    conn.commit()
                 return redirect(url_for("product"))
 
             case "location":
@@ -288,7 +271,6 @@ def delete():
                             (displaced_qty[products_], products_),
                         )
                     conn.execute("DELETE FROM location WHERE loc_id = ?", location_id)
-                    conn.commit()
                 return redirect(url_for("location"))
 
             case _:
@@ -310,7 +292,6 @@ def edit():
                     conn.execute(
                         "UPDATE location SET loc_name = ? WHERE loc_id = ?", (loc_name, loc_id)
                     )
-                    conn.commit()
                 return redirect(url_for("location"))
 
             case "product":
@@ -333,7 +314,6 @@ def edit():
                         "UPDATE products SET prod_quantity = ?, unallocated_quantity =  unallocated_quantity + ? - ? WHERE prod_id = ?",
                         (prod_quantity, prod_quantity, old_prod_quantity, prod_id),
                     )
-                conn.commit()
 
                 return redirect(url_for("product"))
 
