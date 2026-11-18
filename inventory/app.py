@@ -19,6 +19,9 @@ VIEWS = {
 EMPTY_SYMBOLS = {"", " ", None}
 
 app = Flask(__name__)
+# Flask does not autoescape templates with the .jinja extension, so enable it
+# explicitly to prevent stored XSS via user-controlled record names.
+app.jinja_env.autoescape = True
 
 if os.environ.get("FLASK_DEBUG") == "1":
     app.config.update(TEMPLATES_AUTO_RELOAD=True)
